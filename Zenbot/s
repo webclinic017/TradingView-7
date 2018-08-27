@@ -1,8 +1,0 @@
-docker stop $(docker ps -a -q)
-
-osascript -e 'tell application "Terminal" to activate' -e 'tell application "System Events" to tell process "Terminal" to keystroke "t" using command down' -e 'tell application "Terminal" to do script "cd ./Docker/Zenbot; docker start -a zenbot_mongodb_1" in tab 2 of window 1'
-
-sleep 10
-
-osascript -e 'tell application "Terminal" to activate' -e 'tell application "System Events" to tell process "Terminal" to keystroke "t" using command down' -e 'tell application "Terminal" to do script "cd ./Docker/Zenbot; docker start -a zenbot_server_1" in tab 3 of window 1'
-
