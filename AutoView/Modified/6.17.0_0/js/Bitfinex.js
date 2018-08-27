@@ -241,9 +241,9 @@ function Bitfinex() {
 
 		const first = ((Command.isBid && Command.t !== "market") || (Command.isAsk && Command.t === "market")) ? ticker.bid : ticker.ask
 		const market = yield* symbolInfo.call(this, pair.symbol)
-		let price = Command.p.relative(first).resolve(8)
+		let price = Command.p.relative(first).resolve(market.price_precision || 5)
 		if (Command.fp) {
-			price = Command.fp.resolve(8)
+			price = Command.fp.resolve(market.price_precision || 5)
 		}
 
 		let params = {
@@ -510,9 +510,9 @@ function Bitfinex() {
 		const balance = balances[currency]
 		const first = ticker[book]
 		const market = yield* symbolInfo.call(this, pair.symbol)
-		let price = Command.p.relative(first).resolve(8)
+		let price = Command.p.relative(first).resolve(market.price_precision || 5)
 		if (Command.fp) {
-			price = Command.fp.resolve(8)
+			price = Command.fp.resolve(market.price_precision || 5)
 		}
 		let available = Command.y === "equity" ? balance.balance : balance.available
 
