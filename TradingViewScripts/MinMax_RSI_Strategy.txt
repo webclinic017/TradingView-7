@@ -1,23 +1,30 @@
 //@version=3
-strategy(title="Min/Max RSI Strategy", pyramiding = 0, calc_on_order_fills=false, overlay=true, initial_capital=1, commission_type=strategy.commission.percent, commission_value=0.1)  
+strategy(title="Min/Max RSI Strategy", pyramiding = 1, calc_on_order_fills=false, overlay=true, initial_capital=1, commission_type=strategy.commission.percent, commission_value=0.1)  
   
 //////////////////////////////////////////////////////////////
-// **************** Min/Max RSI Strategy - v0.2 *********************
-// - Added checks if current price action in a well established trend - in this case need to open a trade in the direction of the trend
+// **************** Min/Max RSI Strategy - v0.3 *********************
+// - Implemented checks if current price action in a well established trend - in this case need to open a trade in the direction of the trend
+// - Implemented laddering when opening a position
 ////////////////////////////////////////////////////////////// 
 
 preOpenLongFlag = false
 preOpenLongFlag := nz(preOpenLongFlag[1], false) 
+preOpenLongFlag2 = false
+preOpenLongFlag2 := nz(preOpenLongFlag2[1], false) 
 preOpenShortFlag = false
 preOpenShortFlag := nz(preOpenShortFlag[1], false)  
+preOpenShortFlag2 = false
+preOpenShortFlag2 := nz(preOpenShortFlag2[1], false)  
 preCloseLongFlag = false
 preCloseLongFlag := nz(preCloseLongFlag[1], false)   
 preCloseShortFlag = false
 preCloseShortFlag := nz(preCloseShortFlag[1], false) 
 openPositionSize = 0.0 
 openPositionSize := nz(openPositionSize[1], 0.0)
-openPositionValue = 0.0 
-openPositionValue := nz(openPositionValue[1], 0.0)
+avgOpenPositionValue = 0.0 
+avgOpenPositionValue := nz(avgOpenPositionValue[1], 0.0)
+lastOpenPositionValue = 0.0 
+lastOpenPositionValue := nz(lastOpenPositionValue[1], 0.0)
 openPositionRSI = 0.0 
 openPositionRSI := nz(openPositionRSI[1], 0.0)
 ema200CrossValue = 0.0 
@@ -26,6 +33,8 @@ isBullishTrend = false
 isBullishTrend := nz(isBullishTrend[1], false) 
 isBearishTrend = false
 isBearishTrend := nz(isBearishTrend[1], false) 
+currentOpenPositionLadderingCount = 0.0 
+currentOpenPositionLadderingCount := nz(currentOpenPositionLadderingCount[1], 0.0)
 
 commissionValue = input(title="Full Trade Commission Value, %", type=float, defval=0.2)
 rsiLongOpenValue = input(title="RSI Long Open Value", type=integer, defval=28)
@@ -40,19 +49,33 @@ stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=true)
 stopLossValue = input(title="Stop-Loss Value, %", type=float, defval=2.0)
 ema200ROCFlatTrendAllowance = input(title="EMA 200 ROC Level Flat Trend Allowance, %", type=float, defval=1.0)
 debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
+openPosLadderingMaxNum = input(title="Laddering During Opening Position (Max Num)", type=integer, defval=5)
+openPosLadderingThreshold = input(title="Difference Between Price And Last Open Price When Laddering, %", type=float, defval=1.0)
+
+openPosLadderingSize1 = 1
+openPosLadderingSize2 = 1
+openPosLadderingSize3 = 2
+openPosLadderingSize4 = 2
+openPosLadderingSize5 = 4
 
 ema55 = ema(close, 55)
 ema200 = ema(close, 200)
 rsiVal = rsi(close, 14)
 
 isAllowedShortTrading() =>
-    iff(syminfo.prefix == "BITTREX", false, iff(syminfo.prefix == "BITFINEX", true, true))
+    iff(syminfo.prefix == "BITTREX", false, iff(syminfo.prefix == "BITFINEX", true, false))
 
 isPreOpenLong() =>
     preOpenLongFlag == true
     
 isPreOpenShort() =>
     preOpenShortFlag == true
+    
+isPreOpenLong2() =>
+    preOpenLongFlag2 == true
+    
+isPreOpenShort2() =>
+    preOpenShortFlag2 == true    
     
 isPreCloseLong() =>
     preCloseLongFlag == true
@@ -75,14 +98,33 @@ isRsiEnteredBelowLevel(level) =>
 isRsiEnteredAboveLevel(level) =>
     rsiVal[1] < level and rsiVal >= level 
     
+isEligibleLadderingNewPosition(isLongPositionType) => 
+    if(currentOpenPositionLadderingCount == 0)
+        true
+    else
+        f1 = currentOpenPositionLadderingCount < openPosLadderingMaxNum
+        f2 = iff(isLongPositionType, close < lastOpenPositionValue and (lastOpenPositionValue - close)*100/lastOpenPositionValue >= openPosLadderingThreshold, close > lastOpenPositionValue and (close - lastOpenPositionValue)*100/lastOpenPositionValue >= openPosLadderingThreshold)
+        f1 and f2
+    
+getOpenPosLadderingSizeByIndex(index) =>
+    r = iff(index == 1, openPosLadderingSize1, 0)
+    r := iff(index == 2, openPosLadderingSize2, r)
+    r := iff(index == 3, openPosLadderingSize3, r)
+    r := iff(index == 4, openPosLadderingSize4, r)
+    r := iff(index == 5, openPosLadderingSize5, r)
+    r
+    
+ladderNewOpenPositionValue(newPositionSize, price) =>
+    (avgOpenPositionValue * abs(openPositionSize) + newPositionSize * price)/(abs(openPositionSize) + newPositionSize)
+    
 getActualStopLoss() =>
     stopLossValue - commissionValue
     
 isStopLossCondition(isLongPositionType) =>
     if(isLongPositionType == true)
-        iff(stopLossEnabled == true and close < openPositionValue and ((openPositionValue - close)*100/openPositionValue) >= getActualStopLoss(), true, false)
+        iff(stopLossEnabled == true and close < avgOpenPositionValue and ((avgOpenPositionValue - close)*100/avgOpenPositionValue) >= getActualStopLoss(), true, false)
     else
-        iff(stopLossEnabled == true and close > openPositionValue and ((close - openPositionValue)*100/openPositionValue) >= getActualStopLoss(), true, false)
+        iff(stopLossEnabled == true and close > avgOpenPositionValue and ((close - avgOpenPositionValue)*100/avgOpenPositionValue) >= getActualStopLoss(), true, false)
         
 getRSITraversed(entryRSI) =>
     abs(rsiVal - entryRSI) 
@@ -132,46 +174,47 @@ isFlatTrend() =>
 // Determine if pre-open criteria is met and set the flag 
 preOpenLongFlag := iff(isPositionClosed() and not isPreOpenLong() and (isFlatTrend() and isRsiEnteredBelowLevel(rsiLongOpenValue) or isBullishTrend and isRsiEnteredBelowLevel(rsiTrendLongOpenValue)), true, preOpenLongFlag) 
 preOpenShortFlag := iff(isAllowedShortTrading() and isPositionClosed() and not isPreOpenShort() and (isFlatTrend() and isRsiEnteredAboveLevel(rsiShortOpenValue) or isBearishTrend and isRsiEnteredAboveLevel(rsiTrendShortOpenValue)), true, preOpenShortFlag)
+// Calculate a second criteria to determine whether eligible to open a new position
+preOpenLongFlag2 := iff(isPositionClosed() and not isPreOpenLong2() and isPreOpenLong() and (isFlatTrend() and isRsiEnteredAboveLevel(rsiLongOpenValue) or isBullishTrend and isRsiEnteredAboveLevel(rsiTrendLongOpenValue)), true, preOpenLongFlag2)
+preOpenShortFlag2 := iff(isAllowedShortTrading() and isPositionClosed() and not isPreOpenShort2() and isPreOpenShort() and (isFlatTrend() and isRsiEnteredBelowLevel(rsiShortOpenValue) or isBearishTrend and isRsiEnteredBelowLevel(rsiTrendShortOpenValue)), true, preOpenShortFlag2) 
+// Determine if eligible to ladder the new position
+openLongPositionLadderingCriteria = isPreOpenLong2() and isEligibleLadderingNewPosition(true)
+openShortPositionLadderingCriteria = isAllowedShortTrading() and isPreOpenShort2() and isEligibleLadderingNewPosition(false) 
+signalOpenPositionLaddering = iff(openLongPositionLadderingCriteria == true, 1, iff(openShortPositionLadderingCriteria == true, -1, na)) 
+
 // Determine if pre-close criteria is met and set the flag
 preCloseLongFlag := iff(isTakeProfitStrategy4() and isLongPositionOpen() and not isPreCloseLong() and isRsiEnteredAboveLevel(rsiLongCloseValue), true, preCloseLongFlag)
 preCloseShortFlag := iff(isAllowedShortTrading() and isTakeProfitStrategy4() and isShortPositionOpen() and not isPreCloseShort() and isRsiEnteredBelowLevel(rsiShortCloseValue), true, preCloseShortFlag)
-
-// Calculate signal to determine whether eligible to open a new position
-openLongPositionCriteria = isPositionClosed() and isPreOpenLong() and (isFlatTrend() and isRsiEnteredAboveLevel(rsiLongOpenValue) or isBullishTrend and isRsiEnteredAboveLevel(rsiTrendLongOpenValue))
-openShortPositionCriteria = isAllowedShortTrading() and isPositionClosed() and isPreOpenShort() and (isFlatTrend() and isRsiEnteredBelowLevel(rsiShortOpenValue) or isBearishTrend and isRsiEnteredBelowLevel(rsiTrendShortOpenValue))  
-signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, na)) 
 // Calculate signal to determine whether eligible to close existing position
 closeLongPositionCriteria = isLongPositionOpen() and hasReachedLongPositionTarget()
 closeShortPositionCriteria = isAllowedShortTrading() and isShortPositionOpen() and hasReachedShortPositionTarget()
 signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na)) 
 
-//plotchar(debugSignalLine+sss*debugSignalLine*0.03, color=#00ff00ff, location=location.absolute, char='o')
-//bll=isBullishTrend?1:0
-//brr=isBearishTrend?1:0
-//plotchar(0.1+bll*0.0005, color=#00ff00ff, location=location.absolute, char='o')
-//plotchar(0.099+brr*0.0005, color=#ff0000ff, location=location.absolute, char='o')
-
-//plotarrow(signalClosePosition, offset=0, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
-//plotarrow(signalOpenPosition, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
-
-openPositionSize := iff(signalOpenPosition == 1, 1, iff(signalOpenPosition == -1, -1, openPositionSize))
-openPositionSize := iff(signalClosePosition == 1 or signalClosePosition == -1, 0, openPositionSize)
-    
-if(signalOpenPosition == 1 or signalOpenPosition == -1)    
+ladderingPositionSize = 0.0
+if(signalOpenPositionLaddering == 1 or signalOpenPositionLaddering == -1)
     openPositionRSI := rsiVal
-    openPositionValue := close
-    
+    currentOpenPositionLadderingCount := currentOpenPositionLadderingCount + 1
+    ladderingPositionSize := getOpenPosLadderingSizeByIndex(currentOpenPositionLadderingCount)
+    avgOpenPositionValue := ladderNewOpenPositionValue(ladderingPositionSize, close)
+    lastOpenPositionValue := close
+    openPositionSize := openPositionSize + signalOpenPositionLaddering * ladderingPositionSize
+
+strategy.order("Open Long",   strategy.long,  ladderingPositionSize, when = signalOpenPositionLaddering == 1)
+strategy.order("Open Short",  strategy.short, ladderingPositionSize, when = isAllowedShortTrading() and signalOpenPositionLaddering == -1)
+strategy.order("Close Long",  strategy.short, openPositionSize,      when = signalClosePosition == -1)
+strategy.order("Close Short", strategy.long,  abs(openPositionSize), when = isAllowedShortTrading() and signalClosePosition == 1)
+
 if(signalClosePosition == 1 or signalClosePosition == -1)
     preOpenLongFlag   := false
     preOpenShortFlag  := false
+    preOpenLongFlag2  := false
+    preOpenShortFlag2 := false
     preCloseLongFlag  := false
     preCloseShortFlag := false
     openPositionRSI   := 0.0
-    openPositionValue := 0.0
-
-strategy.order("Close Long", strategy.short, when = signalClosePosition == -1)
-strategy.order("Close Short", strategy.long, when = isAllowedShortTrading() and signalClosePosition == 1)
-strategy.order("Open Long",   strategy.long, when = signalOpenPosition == 1)
-strategy.order("Open Short", strategy.short, when = isAllowedShortTrading() and signalOpenPosition == -1)
-
+    openPositionSize  := 0.0
+    avgOpenPositionValue := 0.0
+    lastOpenPositionValue := 0.0
+    currentOpenPositionLadderingCount := 0.0
+ 
 

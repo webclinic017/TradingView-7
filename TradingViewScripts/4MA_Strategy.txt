@@ -2,7 +2,7 @@
 strategy("4 MA Strategy", pyramiding = 0, calc_on_order_fills=false, overlay=true, commission_type=strategy.commission.percent, commission_value=0.25) 
 
 /////////////////////////////////////////////////////
-// ************ 4 MA Strategy - v0.2 **************** 
+// ************ 4 MA Strategy - v0.3 **************** 
 ///////////////////////////////////////////////////// 
 
 openPositionSize = 0.0 
@@ -23,14 +23,64 @@ shortEMA = ema(close, shortPeriod)
 mediumEMA = ema(close, mediumPeriod)
 longestEMA = ema(close, longestPeriod)
 rsiVal = rsi(close, 14)
+volumeMA=sma(volume, 20)
+
+isPositionClosed() =>
+    openPositionSize == 0
+
+isLongPositionOpen() =>
+    openPositionSize > 0
+
+isShortPositionOpen() =>
+    openPositionSize < 0
+    
+isAllowedShortTrading() =>
+    traderType == "All"
+    
+rsiEligibleForOpenLong() =>
+    rsiVal > 60
+    
+rsiEligibleForOpenShort() =>
+    rsiVal < 40
+    
+isVolumeSpikedNBars(numBars, spikeRatio, spikeAboveMARatio) =>
+    result = false
+    for i = 1 to numBars
+        if(volume > volumeMA * spikeAboveMARatio and volume > volume[i] * spikeRatio)
+            result := true
+    result
+
+isPrematureCloseLong() =>
+    open >= longestEMA and close <= longestEMA and isVolumeSpikedNBars(2, 3, 2)
+
+isPrematureCloseShort() =>
+    open <= longestEMA and close >= longestEMA and isVolumeSpikedNBars(2, 3, 2)
+
+isGreenCandle() =>
+    close > open
+    
+isRedCandle() =>
+    close < open
+
+isAllEmasBullishOrdered() =>
+    longestEMA < mediumEMA and mediumEMA < shortEMA and shortEMA < shortestEMA
+
+isAllEmasBearishOrdered() =>
+    longestEMA > mediumEMA and mediumEMA > shortEMA and shortEMA > shortestEMA
+
+isAllEmasBullishUnOrdered() =>
+    longestEMA < mediumEMA and longestEMA < shortEMA and longestEMA < shortestEMA
+
+isAllEmasBearishUnOrdered() =>
+    longestEMA > mediumEMA and longestEMA > shortEMA and longestEMA > shortestEMA
 
 // Calculate signal to determine whether eligible to open a new position
-openLongPositionCriteria = openPositionSize == 0 and shortestEMA[1] <= longestEMA[1] and shortestEMA >= longestEMA and rsiVal >= 60
-openShortPositionCriteria = traderType == "All" and openPositionSize == 0 and shortestEMA[1] >= longestEMA[1] and shortestEMA <= longestEMA and rsiVal <= 40
+openLongPositionCriteria = isPositionClosed() and isVolumeSpikedNBars(4, 7, 2) and (crossover(shortestEMA, longestEMA) and rsiEligibleForOpenLong() or isGreenCandle() and isAllEmasBullishUnOrdered())  
+openShortPositionCriteria = isAllowedShortTrading() and isPositionClosed() and isVolumeSpikedNBars(4, 7, 2) and (crossunder(shortestEMA, longestEMA) and rsiEligibleForOpenShort() or isRedCandle() and isAllEmasBearishUnOrdered())
 signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, na)) 
 // Calculate signal to determine whether eligible to close existing position
-closeLongPositionCriteria = openPositionSize > 0 and shortestEMA[1] > longestEMA[1] and shortestEMA < longestEMA
-closeShortPositionCriteria = traderType == "All" and openPositionSize < 0 and shortestEMA[1] < longestEMA[1] and shortestEMA > longestEMA
+closeLongPositionCriteria = isLongPositionOpen() and (crossunder(shortestEMA, longestEMA) or isPrematureCloseLong())
+closeShortPositionCriteria = isAllowedShortTrading() and isShortPositionOpen() and (crossover(shortestEMA, longestEMA) or isPrematureCloseShort())
 signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na)) 
 
 //plotchar(debugSignalLine+sss*debugSignalLine*0.03, color=#00ff00ff, location=location.absolute, char='o')
