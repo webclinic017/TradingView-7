@@ -1,0 +1,18 @@
+//@version=3
+study(title="Coin Major Movement Indicator", overlay=true) 
+
+btcPriceMovementThresholdValue = input(title="BTC Price Movement Value", type=float, defval=30.0)
+btcPriceMovementThresholdPercent = input(title="BTC Price Movement %", type=float, defval=1.0)
+altcoinPriceMovementThresholdPercent = input(title="Altcoin Price Movement %", type=float, defval=1.0)
+
+priceMovementValue = abs(open - close)
+priceMovementPercent = abs(open - close)*100/close
+
+plot(0, color=black)
+
+btcPriceMovementAlertFlag = (ticker == "BTCUSD" or ticker == "BTCUSDT") and (priceMovementValue >= btcPriceMovementThresholdValue or priceMovementPercent >= btcPriceMovementThresholdPercent)
+altcoinPriceMovementAlertFlag = (ticker != "BTCUSD" and ticker != "BTCUSDT") and priceMovementPercent >= altcoinPriceMovementThresholdPercent
+
+alertcondition(btcPriceMovementAlertFlag == true, title='0101 - Bitcoin Major Movement Alert', message='Bitcoin Major Movement Alert!')
+alertcondition(altcoinPriceMovementAlertFlag == true, title='0102 - Altcoin Major Movement Alert', message='Altcoin Major Movement Alert!')
+

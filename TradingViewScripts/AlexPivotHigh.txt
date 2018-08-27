@@ -1,0 +1,6 @@
+//@version=3
+study("Alex PivotHigh", overlay=true)
+leftBars = input(3)
+rightBars=input(3)
+ph = pivothigh(leftBars, rightBars)
+plot(ph, style=circles, linewidth=4, color=#FF0000FF, offset=-rightBars)

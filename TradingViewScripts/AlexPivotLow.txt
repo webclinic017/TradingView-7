@@ -1,0 +1,6 @@
+//@version=3
+study("Alex PivotLow", overlay=true)
+leftBars = input(3)
+rightBars=input(3)
+pl = pivotlow(close, leftBars, rightBars)
+plot(pl, style=circles, linewidth=4, color= #FFFFFFFF, offset=-rightBars)
