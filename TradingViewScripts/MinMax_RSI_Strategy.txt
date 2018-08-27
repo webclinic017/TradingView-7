@@ -1,0 +1,164 @@
+//@version=3
+strategy(title="Min/Max RSI Strategy", pyramiding = 0, calc_on_order_fills=false, overlay=true, initial_capital=1, commission_type=strategy.commission.percent, commission_value=0.1)  
+  
+//////////////////////////////////////////////////////////////
+// **************** Min/Max RSI Strategy - v0.1 *********************
+////////////////////////////////////////////////////////////// 
+
+preOpenLongFlag = false
+preOpenLongFlag := nz(preOpenLongFlag[1], false) 
+preOpenShortFlag = false
+preOpenShortFlag := nz(preOpenShortFlag[1], false)  
+preCloseLongFlag = false
+preCloseLongFlag := nz(preCloseLongFlag[1], false)   
+preCloseShortFlag = false
+preCloseShortFlag := nz(preCloseShortFlag[1], false) 
+openPositionSize = 0.0 
+openPositionSize := nz(openPositionSize[1], 0.0)
+openPositionValue = 0.0 
+openPositionValue := nz(openPositionValue[1], 0.0)
+openPositionRSI = 0.0 
+openPositionRSI := nz(openPositionRSI[1], 0.0)
+
+commissionValue = input(title="Full Trade Commission Value, %", type=float, defval=0.2)
+rsiLongOpenValue = input(title="RSI Long Open Value", type=integer, defval=28)
+rsiLongCloseValue = input(title="RSI Long Close Value", type=integer, defval=69)
+rsiShortOpenValue = input(title="RSI Short Open Value", type=integer, defval=72)
+rsiShortCloseValue = input(title="RSI Short Close Value", type=integer, defval=31)
+takeProfitStrategy = input(title="Take Profit Strategy", defval="4 - RSI Reached Overbought(Oversold) Zone", options=["1 - RSI Traversal # Pips", "2 - RSI Reached 50 Level", "3 - RSI Reached 60(40) Level", "4 - RSI Reached Overbought(Oversold) Zone"])
+rsiTraversalNumberPips = input(title="RSI Traversal # Pips Value", type=float, defval=10.0)
+stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=true)
+stopLossValue = input(title="Stop-Loss Value, %", type=float, defval=2.0)
+allowCounterTrendTrades = input(title="Allow Counter Trend Trades", type=bool, defval=true)
+debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
+
+ema55 = ema(close, 55)
+ema200 = ema(close, 200)
+rsiVal = rsi(close, 14)
+
+isAllowedShortTrading() =>
+    iff(syminfo.prefix == "BITTREX", false, iff(syminfo.prefix == "BITFINEX", true, true))
+
+isPreOpenLong() =>
+    preOpenLongFlag == true
+    
+isPreOpenShort() =>
+    preOpenShortFlag == true
+    
+isPreCloseLong() =>
+    preCloseLongFlag == true
+    
+isPreCloseShort() =>
+    preCloseShortFlag == true
+    
+isPositionClosed() =>
+    openPositionSize == 0
+
+isLongPositionOpen() =>
+    openPositionSize > 0
+
+isShortPositionOpen() =>
+    openPositionSize < 0
+    
+isRsiEnteredBelowLevel(level) =>
+    rsiVal[1] > level and rsiVal <= level
+
+isRsiEnteredAboveLevel(level) =>
+    rsiVal[1] < level and rsiVal >= level 
+    
+getActualStopLoss() =>
+    stopLossValue - commissionValue
+    
+isStopLossCondition(isLongPositionType) =>
+    if(isLongPositionType == true)
+        iff(stopLossEnabled == true and close < openPositionValue and ((openPositionValue - close)*100/openPositionValue) >= getActualStopLoss(), true, false)
+    else
+        iff(stopLossEnabled == true and close > openPositionValue and ((close - openPositionValue)*100/openPositionValue) >= getActualStopLoss(), true, false)
+        
+getRSITraversed(entryRSI) =>
+    abs(rsiVal - entryRSI) 
+    
+isRSITraversedNumberPips(rsi) =>
+    getRSITraversed(rsi) > rsiTraversalNumberPips
+    
+isTakeProfitStrategy1() =>
+    takeProfitStrategy == "1 - RSI Traversal # Pips" 
+
+isTakeProfitStrategy2() =>
+    takeProfitStrategy == "2 - RSI Reached 50 Level"
+
+isTakeProfitStrategy3() =>
+    takeProfitStrategy == "3 - RSI Reached 60(40) Level"
+
+isTakeProfitStrategy4() =>
+    takeProfitStrategy == "4 - RSI Reached Overbought(Oversold) Zone"
+
+hasReachedLongPositionTarget() =>
+    f1 = iff(isTakeProfitStrategy1() and isRSITraversedNumberPips(openPositionRSI), true, false)
+    f2 = iff(isTakeProfitStrategy2() and isRsiEnteredAboveLevel(50), true, false)
+    f3 = iff(isTakeProfitStrategy3() and isRsiEnteredAboveLevel(60), true, false)
+    f4 = iff(isTakeProfitStrategy4() and isPreCloseLong() and isRsiEnteredBelowLevel(rsiLongCloseValue), true, false)
+    isStopLossCondition(true) or f1 or f2 or f3 or f4
+
+hasReachedShortPositionTarget() =>
+    f1 = iff(isTakeProfitStrategy1() and isRSITraversedNumberPips(openPositionRSI), true, false)
+    f2 = iff(isTakeProfitStrategy2() and isRsiEnteredBelowLevel(50), true, false)
+    f3 = iff(isTakeProfitStrategy3() and isRsiEnteredBelowLevel(40), true, false)
+    f4 = iff(isTakeProfitStrategy4() and isPreCloseShort() and isRsiEnteredAboveLevel(rsiShortCloseValue), true, false)
+    isStopLossCondition(false) or f1 or f2 or f3 or f4
+    
+hasPriceRetracedInBullishTrend() =>
+    open < ema55 and close < ema55 and ema200 < ema55 
+
+hasPriceRetracedInBearishTrend() =>
+    open > ema55 and close > ema55 and ema200 > ema55
+    
+checkTradingWithTrend(isLongPositionType) =>
+    if(allowCounterTrendTrades == false)
+        iff(isLongPositionType == true and hasPriceRetracedInBullishTrend() or isLongPositionType == false and hasPriceRetracedInBearishTrend(), true, false) 
+    else
+        true
+    
+// Determine if pre-open criteria is met and set the flag
+preOpenLongFlag := iff(isPositionClosed() and not isPreOpenLong() and isRsiEnteredBelowLevel(rsiLongOpenValue) and checkTradingWithTrend(true), true, preOpenLongFlag) 
+preOpenShortFlag := iff(isAllowedShortTrading() and isPositionClosed() and not isPreOpenShort() and isRsiEnteredAboveLevel(rsiShortOpenValue) and checkTradingWithTrend(false), true, preOpenShortFlag)
+// Determine if pre-close criteria is met and set the flag
+preCloseLongFlag := iff(isTakeProfitStrategy4() and isLongPositionOpen() and not isPreCloseLong() and isRsiEnteredAboveLevel(rsiLongCloseValue), true, preCloseLongFlag)
+preCloseShortFlag := iff(isAllowedShortTrading() and isTakeProfitStrategy4() and isShortPositionOpen() and not isPreCloseShort() and isRsiEnteredBelowLevel(rsiShortCloseValue), true, preCloseShortFlag)
+
+// Calculate signal to determine whether eligible to open a new position
+openLongPositionCriteria = isPositionClosed() and isPreOpenLong() and isRsiEnteredAboveLevel(rsiLongOpenValue)
+openShortPositionCriteria = isAllowedShortTrading() and isPositionClosed() and isPreOpenShort() and isRsiEnteredBelowLevel(rsiShortOpenValue)
+signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, na)) 
+// Calculate signal to determine whether eligible to close existing position
+closeLongPositionCriteria = isLongPositionOpen() and hasReachedLongPositionTarget()
+closeShortPositionCriteria = isAllowedShortTrading() and isShortPositionOpen() and hasReachedShortPositionTarget()
+signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na)) 
+
+//plotchar(debugSignalLine+sss*debugSignalLine*0.03, color=#00ff00ff, location=location.absolute, char='o')
+//plotchar(debugSignalLine*1.1+signalClosePosition*debugSignalLine*0.03, color=#ff0000ff, location=location.absolute, char='o')
+
+plotarrow(signalClosePosition, offset=0, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
+plotarrow(signalOpenPosition, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
+
+openPositionSize := iff(signalOpenPosition == 1, 1, iff(signalOpenPosition == -1, -1, openPositionSize))
+openPositionSize := iff(signalClosePosition == 1 or signalClosePosition == -1, 0, openPositionSize)
+    
+if(signalOpenPosition == 1 or signalOpenPosition == -1)    
+    openPositionRSI := rsiVal
+    openPositionValue := close
+    
+if(signalClosePosition == 1 or signalClosePosition == -1)
+    preOpenLongFlag   := false
+    preOpenShortFlag  := false
+    preCloseLongFlag  := false
+    preCloseShortFlag := false
+    openPositionRSI   := 0.0
+    openPositionValue := 0.0
+
+strategy.order("Close Long", strategy.short, when = signalClosePosition == -1)
+strategy.order("Close Short", strategy.long, when = isAllowedShortTrading() and signalClosePosition == 1)
+strategy.order("Open Long",   strategy.long, when = signalOpenPosition == 1)
+strategy.order("Open Short", strategy.short, when = isAllowedShortTrading() and signalOpenPosition == -1)
+
+

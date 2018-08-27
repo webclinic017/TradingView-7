@@ -1,0 +1,21 @@
+//@version=3
+study(title="4 EMA lines", shorttitle="4 EMA lines", overlay=true)
+len1 = input(8, minval=1, title="Shortest EMA")
+len2 = input(13, minval=1, title="Short EMA")
+len3 = input(21, minval=1, title="Medium EMA")
+len4 = input(55, minval=1, title="Long EMA")
+
+src1 = input(close, title="Shortest Source")
+src2 = input(close, title="Short Source")
+src3 = input(close, title="Medium Source")
+src4 = input(close, title="Long Source")
+
+ema1 = ema(src1, len1)
+ema2 = ema(src2, len2)
+ema3 = ema(src3, len3)
+ema4 = ema(src4, len4)
+
+plot(ema1, color=blue, linewidth=2, title="Shortest EMA")
+plot(ema2, color=yellow, linewidth=2, title="Short EMA")
+plot(ema3, color=orange, linewidth=2, title="Medium EMA")
+plot(ema4, color=red, linewidth=2, title="Long EMA")

@@ -1,0 +1,37 @@
+//@version=3
+study("4 MA Strategy Indicator", overlay=true) 
+currPositionSize = 0.0
+currPositionSize := nz(currPositionSize[1], 0) 
+
+traderType = input(title="Trader Type", defval="Longs Only", options=["All", "Longs Only"])
+shortestPeriod = input(title="Shortest Period",type=integer,defval=8)
+shortPeriod = input(title="Short Period",type=integer,defval=13)
+mediumPeriod = input(title="Medium Period",type=integer,defval=21)
+longestPeriod = input(title="Longest Period",type=integer,defval=55)
+debugSignalLine = input(title="Debug Signal Line", type=float, defval=0.08) 
+
+shortestEMA = ema(close, shortestPeriod)
+shortEMA = ema(close, shortPeriod)
+mediumEMA = ema(close, mediumPeriod)
+longestEMA = ema(close, longestPeriod) 
+rsiVal = rsi(close, 14)
+
+lastNCandlesCrossedLongestEma = longestEMA[2] < high[2] and longestEMA[2] > low[2] or longestEMA[1] < high[1] and longestEMA[1] > low[1] or longestEMA < high and longestEMA > low
+
+// Calculate signal to determine whether eligible to open a new position
+openLongPositionCriteria = currPositionSize == 0 and shortestEMA > shortEMA and shortEMA > longestEMA and lastNCandlesCrossedLongestEma == false and rsiVal >= 65
+openShortPositionCriteria = traderType == "All" and currPositionSize == 0 and shortestEMA < shortEMA and shortEMA < longestEMA and lastNCandlesCrossedLongestEma == false and rsiVal <= 35
+signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, 0)) 
+// Calculate signal to determine whether eligible to close existing position
+closeLongPositionCriteria = currPositionSize > 0 and shortestEMA[1] > longestEMA[1] and shortestEMA < longestEMA
+closeShortPositionCriteria = traderType == "All" and currPositionSize < 0 and shortestEMA[1] < longestEMA[1] and shortestEMA > longestEMA
+signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, 0)) 
+
+plotarrow(signalClosePosition, offset=0, colorup=#fff2cfff, colordown=#2cfffeff, maxheight=150, minheight=130, transp=0)
+plotarrow(signalOpenPosition, colorup=#fff2cfff, colordown=#2cfffeff, maxheight=150, minheight=130, transp=0)
+
+currPositionSize := iff(signalOpenPosition == 1, 1, iff(signalOpenPosition == -1, -1, currPositionSize))
+currPositionSize := iff(signalClosePosition == 1 or signalClosePosition == -1, 0, currPositionSize)
+
+alertcondition(signalOpenPosition != 0, title='4 MA Alert - Open Position', message='4 MA Open Position!')
+alertcondition(signalClosePosition != 0, title='4 MA Alert - Close Position', message='4 MA Close Position!') 
