@@ -2,9 +2,10 @@
 study(title="Min/Max RSI Strategy Indicator", overlay=true) 
 
 //////////////////////////////////////////////////////////////
-// **************** Min/Max RSI Strategy Indicator - v0.3 *********************
+// **************** Min/Max RSI Strategy Indicator - v0.4 *********************
 // - Implemented checks if current price action in a well established trend - in this case need to open a trade in the direction of the trend
 // - Implemented laddering when opening a position
+// - Splitted Open Position alert into Long and Short types
 ////////////////////////////////////////////////////////////// 
 
 preOpenLongFlag = false
@@ -45,11 +46,11 @@ rsiTrendShortOpenValue = input(title="RSI Trend Short Open Value", type=integer,
 rsiShortCloseValue = input(title="RSI Short Close Value", type=integer, defval=31)
 takeProfitStrategy = input(title="Take Profit Strategy", defval="4 - RSI Reached Overbought(Oversold) Zone", options=["1 - RSI Traversal # Pips", "2 - RSI Reached 50 Level", "3 - RSI Reached 60(40) Level", "4 - RSI Reached Overbought(Oversold) Zone"])
 rsiTraversalNumberPips = input(title="RSI Traversal # Pips Value", type=float, defval=10.0)
-stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=true)
+stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=false)
 stopLossValue = input(title="Stop-Loss Value, %", type=float, defval=2.0)
 ema200ROCFlatTrendAllowance = input(title="EMA 200 ROC Level Flat Trend Allowance, %", type=float, defval=1.0)
 debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
-openPosLadderingMaxNum = input(title="Laddering During Opening Position (Max Num)", type=integer, defval=53)
+openPosLadderingMaxNum = input(title="Laddering During Opening Position (Max Num)", type=integer, defval=5)
 openPosLadderingThreshold = input(title="Difference Between Price And Last Open Price When Laddering, %", type=float, defval=1.0)
 
 openPosLadderingSize1 = 1
@@ -215,8 +216,9 @@ if(signalClosePosition == 1 or signalClosePosition == -1)
     lastOpenPositionValue := 0.0
     currentOpenPositionLadderingCount := 0.0
  
-plot(0, color=black) 
+plot(0, color=black)
  
-alertcondition(signalOpenPositionLaddering != 0, title='0201 - Min/Max RSI Alert - Signal to Open Position', message='Min/Max RSI Strategy - Signal to Open Position!')
-alertcondition(signalClosePosition != 0, title='0202 - Min/Max RSI Alert - Signal to Close Position', message='Min/Max RSI Strategy - Signal to Close Position!')
+alertcondition(signalOpenPositionLaddering == 1,  title='0201 - Min/Max RSI Alert - Signal to Open Long Position', message='Min/Max RSI Strategy - Signal to Open Long Position!')
+alertcondition(signalOpenPositionLaddering == -1, title='0202 - Min/Max RSI Alert - Signal to Open Short Position', message='Min/Max RSI Strategy - Signal to Open Short Position!')
+alertcondition(signalClosePosition != 0, title='0203 - Min/Max RSI Alert - Signal to Close Position', message='Min/Max RSI Strategy - Signal to Close Position!')
 

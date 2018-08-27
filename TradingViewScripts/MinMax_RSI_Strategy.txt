@@ -1,8 +1,8 @@
 //@version=3
-strategy(title="Min/Max RSI Strategy", pyramiding = 1, calc_on_order_fills=false, overlay=true, initial_capital=1, commission_type=strategy.commission.percent, commission_value=0.1)  
+strategy(title="Min/Max RSI Strategy", pyramiding = 5, calc_on_order_fills=false, overlay=true, initial_capital=1, commission_type=strategy.commission.percent, commission_value=0.001)  
   
 //////////////////////////////////////////////////////////////
-// **************** Min/Max RSI Strategy - v0.3 *********************
+// **************** Min/Max RSI Strategy - v0.4 *********************
 // - Implemented checks if current price action in a well established trend - in this case need to open a trade in the direction of the trend
 // - Implemented laddering when opening a position
 ////////////////////////////////////////////////////////////// 
@@ -45,7 +45,7 @@ rsiTrendShortOpenValue = input(title="RSI Trend Short Open Value", type=integer,
 rsiShortCloseValue = input(title="RSI Short Close Value", type=integer, defval=31)
 takeProfitStrategy = input(title="Take Profit Strategy", defval="4 - RSI Reached Overbought(Oversold) Zone", options=["1 - RSI Traversal # Pips", "2 - RSI Reached 50 Level", "3 - RSI Reached 60(40) Level", "4 - RSI Reached Overbought(Oversold) Zone"])
 rsiTraversalNumberPips = input(title="RSI Traversal # Pips Value", type=float, defval=10.0)
-stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=true)
+stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=false)
 stopLossValue = input(title="Stop-Loss Value, %", type=float, defval=2.0)
 ema200ROCFlatTrendAllowance = input(title="EMA 200 ROC Level Flat Trend Allowance, %", type=float, defval=1.0)
 debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
@@ -199,10 +199,10 @@ if(signalOpenPositionLaddering == 1 or signalOpenPositionLaddering == -1)
     lastOpenPositionValue := close
     openPositionSize := openPositionSize + signalOpenPositionLaddering * ladderingPositionSize
 
-strategy.order("Open Long",   strategy.long,  ladderingPositionSize, when = signalOpenPositionLaddering == 1)
-strategy.order("Open Short",  strategy.short, ladderingPositionSize, when = isAllowedShortTrading() and signalOpenPositionLaddering == -1)
-strategy.order("Close Long",  strategy.short, openPositionSize,      when = signalClosePosition == -1)
-strategy.order("Close Short", strategy.long,  abs(openPositionSize), when = isAllowedShortTrading() and signalClosePosition == 1)
+strategy.entry("Long",  strategy.long,  qty = ladderingPositionSize, when = signalOpenPositionLaddering == 1, comment="Long")
+strategy.entry("Short", strategy.short, qty = ladderingPositionSize, when = isAllowedShortTrading() and signalOpenPositionLaddering == -1, comment="Short")
+strategy.close("Long",  when = signalClosePosition == -1)
+strategy.close("Short", when = isAllowedShortTrading() and signalClosePosition == 1)
 
 if(signalClosePosition == 1 or signalClosePosition == -1)
     preOpenLongFlag   := false
