@@ -2,10 +2,11 @@
 study(title="Min/Max RSI Strategy Indicator", overlay=true) 
 
 //////////////////////////////////////////////////////////////
-// **************** Min/Max RSI Strategy Indicator - v0.4 *********************
+// **************** Min/Max RSI Strategy - v0.5 *********************
 // - Implemented checks if current price action in a well established trend - in this case need to open a trade in the direction of the trend
 // - Implemented laddering when opening a position
 // - Splitted Open Position alert into Long and Short types
+// - Implemented trailing take profit
 ////////////////////////////////////////////////////////////// 
 
 preOpenLongFlag = false
@@ -36,28 +37,34 @@ isBearishTrend = false
 isBearishTrend := nz(isBearishTrend[1], false) 
 currentOpenPositionLadderingCount = 0.0 
 currentOpenPositionLadderingCount := nz(currentOpenPositionLadderingCount[1], 0.0)
+maxCurrentProfitPercent = 0.0 
+maxCurrentProfitPercent := nz(maxCurrentProfitPercent[1], 0.0)
+isTrailingTakeProfitActivated = false
+isTrailingTakeProfitActivated := nz(isTrailingTakeProfitActivated[1], false)
 
-commissionValue = input(title="Full Trade Commission Value, %", type=float, defval=0.2)
+commissionValue = input(title="Full Trade Commission Value, %", type=float, defval=0.4)
 rsiLongOpenValue = input(title="RSI Long Open Value", type=integer, defval=28)
 rsiTrendLongOpenValue = input(title="RSI Trend Long Open Value", type=integer, defval=34)
 rsiLongCloseValue = input(title="RSI Long Close Value", type=integer, defval=69)
 rsiShortOpenValue = input(title="RSI Short Open Value", type=integer, defval=72)
 rsiTrendShortOpenValue = input(title="RSI Trend Short Open Value", type=integer, defval=66)
 rsiShortCloseValue = input(title="RSI Short Close Value", type=integer, defval=31)
-takeProfitStrategy = input(title="Take Profit Strategy", defval="4 - RSI Reached Overbought(Oversold) Zone", options=["1 - RSI Traversal # Pips", "2 - RSI Reached 50 Level", "3 - RSI Reached 60(40) Level", "4 - RSI Reached Overbought(Oversold) Zone"])
+takeProfitStrategy = input(title="Take Profit Strategy", defval="1 - RSI Reached Overbought(Oversold) Zone", options=["1 - RSI Reached Overbought(Oversold) Zone"])
 rsiTraversalNumberPips = input(title="RSI Traversal # Pips Value", type=float, defval=10.0)
 stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=false)
-stopLossValue = input(title="Stop-Loss Value, %", type=float, defval=2.0)
+stopLossValue = input(title="Stop-Loss Value, %", type=float, defval=3.65)
 ema200ROCFlatTrendAllowance = input(title="EMA 200 ROC Level Flat Trend Allowance, %", type=float, defval=1.0)
 debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
-openPosLadderingMaxNum = input(title="Laddering During Opening Position (Max Num)", type=integer, defval=5)
-openPosLadderingThreshold = input(title="Difference Between Price And Last Open Price When Laddering, %", type=float, defval=1.0)
+openPosLadderingMaxNum = input(title="Laddering During Opening Position (Max Num)", type=integer, defval=4)
+openPosLadderingThreshold = input(title="Difference Between Price And Last Open Price When Laddering, %", type=float, defval=1.5)
+startTrailingTakeProfitTarget = input(title="Take Profit Trailing Start Target, %", type=float, defval=1.0)
+trailingTakeProfitDistance = input(title="Trailing Take Profit Distance, %", type=float, defval=0.5)
 
 openPosLadderingSize1 = 1
 openPosLadderingSize2 = 1
-openPosLadderingSize3 = 2
-openPosLadderingSize4 = 2
-openPosLadderingSize5 = 4
+openPosLadderingSize3 = 1
+openPosLadderingSize4 = 1
+openPosLadderingSize5 = 1
 
 ema55 = ema(close, 55)
 ema200 = ema(close, 200)
@@ -99,11 +106,14 @@ isRsiEnteredBelowLevel(level) =>
 isRsiEnteredAboveLevel(level) =>
     rsiVal[1] < level and rsiVal >= level 
     
+hasReachedLadderingMaxNum() =>
+    currentOpenPositionLadderingCount >= openPosLadderingMaxNum
+    
 isEligibleLadderingNewPosition(isLongPositionType) => 
     if(currentOpenPositionLadderingCount == 0)
         true
     else
-        f1 = currentOpenPositionLadderingCount < openPosLadderingMaxNum
+        f1 = not hasReachedLadderingMaxNum()
         f2 = iff(isLongPositionType, close < lastOpenPositionValue and (lastOpenPositionValue - close)*100/lastOpenPositionValue >= openPosLadderingThreshold, close > lastOpenPositionValue and (close - lastOpenPositionValue)*100/lastOpenPositionValue >= openPosLadderingThreshold)
         f1 and f2
     
@@ -119,45 +129,31 @@ ladderNewOpenPositionValue(newPositionSize, price) =>
     (avgOpenPositionValue * abs(openPositionSize) + newPositionSize * price)/(abs(openPositionSize) + newPositionSize)
     
 getActualStopLoss() =>
-    stopLossValue - commissionValue
-    
+    stopLossValue - commissionValue 
+
+calculateCurrentProfitPercent() =>
+    iff(isLongPositionOpen(), (close - avgOpenPositionValue) * 100 / avgOpenPositionValue, iff(isShortPositionOpen(), (avgOpenPositionValue - close) * 100 / avgOpenPositionValue, 0.0))
+
+isTrailingTakeProfitCloseCondition() =>
+    c = calculateCurrentProfitPercent()
+    iff(isTrailingTakeProfitActivated == true and c > 0 and c <= (maxCurrentProfitPercent - trailingTakeProfitDistance), true, false)
+
 isStopLossCondition(isLongPositionType) =>
     if(isLongPositionType == true)
-        iff(stopLossEnabled == true and close < avgOpenPositionValue and ((avgOpenPositionValue - close)*100/avgOpenPositionValue) >= getActualStopLoss(), true, false)
+        iff(stopLossEnabled == true and hasReachedLadderingMaxNum() and close < avgOpenPositionValue and ((avgOpenPositionValue - close)*100/avgOpenPositionValue) >= getActualStopLoss(), true, false)
     else
-        iff(stopLossEnabled == true and close > avgOpenPositionValue and ((close - avgOpenPositionValue)*100/avgOpenPositionValue) >= getActualStopLoss(), true, false)
-        
-getRSITraversed(entryRSI) =>
-    abs(rsiVal - entryRSI) 
-    
-isRSITraversedNumberPips(rsi) =>
-    getRSITraversed(rsi) > rsiTraversalNumberPips
-    
+        iff(stopLossEnabled == true and hasReachedLadderingMaxNum() and close > avgOpenPositionValue and ((close - avgOpenPositionValue)*100/avgOpenPositionValue) >= getActualStopLoss(), true, false)
+
 isTakeProfitStrategy1() =>
-    takeProfitStrategy == "1 - RSI Traversal # Pips" 
-
-isTakeProfitStrategy2() =>
-    takeProfitStrategy == "2 - RSI Reached 50 Level"
-
-isTakeProfitStrategy3() =>
-    takeProfitStrategy == "3 - RSI Reached 60(40) Level"
-
-isTakeProfitStrategy4() =>
-    takeProfitStrategy == "4 - RSI Reached Overbought(Oversold) Zone"
+    takeProfitStrategy == "1 - RSI Reached Overbought(Oversold) Zone"
 
 hasReachedLongPositionTarget() =>
-    f1 = iff(isTakeProfitStrategy1() and isRSITraversedNumberPips(openPositionRSI), true, false)
-    f2 = iff(isTakeProfitStrategy2() and isRsiEnteredAboveLevel(50), true, false)
-    f3 = iff(isTakeProfitStrategy3() and isRsiEnteredAboveLevel(60), true, false)
-    f4 = iff(isTakeProfitStrategy4() and isPreCloseLong() and isRsiEnteredBelowLevel(rsiLongCloseValue), true, false)
-    isStopLossCondition(true) or f1 or f2 or f3 or f4
+    f1 = iff(isTakeProfitStrategy1() and isPreCloseLong() and isRsiEnteredBelowLevel(rsiLongCloseValue), true, false)
+    isTrailingTakeProfitCloseCondition() or isStopLossCondition(true) or f1
 
 hasReachedShortPositionTarget() =>
-    f1 = iff(isTakeProfitStrategy1() and isRSITraversedNumberPips(openPositionRSI), true, false)
-    f2 = iff(isTakeProfitStrategy2() and isRsiEnteredBelowLevel(50), true, false)
-    f3 = iff(isTakeProfitStrategy3() and isRsiEnteredBelowLevel(40), true, false)
-    f4 = iff(isTakeProfitStrategy4() and isPreCloseShort() and isRsiEnteredAboveLevel(rsiShortCloseValue), true, false)
-    isStopLossCondition(false) or f1 or f2 or f3 or f4
+    f1 = iff(isTakeProfitStrategy1() and isPreCloseShort() and isRsiEnteredAboveLevel(rsiShortCloseValue), true, false)
+    isTrailingTakeProfitCloseCondition() or isStopLossCondition(false) or f1
     
 isEmaCrossover(firstEMA, secondEMA) =>
     not na(firstEMA) and not na(secondEMA) and crossover(firstEMA, secondEMA)  
@@ -171,7 +167,7 @@ isBullishTrend := iff(not isBullishTrend and ema200 < ema55 and (ema200 - ema200
 isBearishTrend := iff(not isBearishTrend and ema200 > ema55 and (ema200CrossValue - ema200) * 100/ema200CrossValue >= ema200ROCFlatTrendAllowance, true, isBearishTrend)
 isFlatTrend() =>
     not isBullishTrend and not isBearishTrend
-
+    
 // Determine if pre-open criteria is met and set the flag 
 preOpenLongFlag := iff(isPositionClosed() and not isPreOpenLong() and (isFlatTrend() and isRsiEnteredBelowLevel(rsiLongOpenValue) or isBullishTrend and isRsiEnteredBelowLevel(rsiTrendLongOpenValue)), true, preOpenLongFlag) 
 preOpenShortFlag := iff(isAllowedShortTrading() and isPositionClosed() and not isPreOpenShort() and (isFlatTrend() and isRsiEnteredAboveLevel(rsiShortOpenValue) or isBearishTrend and isRsiEnteredAboveLevel(rsiTrendShortOpenValue)), true, preOpenShortFlag)
@@ -183,17 +179,6 @@ openLongPositionLadderingCriteria = isPreOpenLong2() and isEligibleLadderingNewP
 openShortPositionLadderingCriteria = isAllowedShortTrading() and isPreOpenShort2() and isEligibleLadderingNewPosition(false) 
 signalOpenPositionLaddering = iff(openLongPositionLadderingCriteria == true, 1, iff(openShortPositionLadderingCriteria == true, -1, na)) 
 
-// Determine if pre-close criteria is met and set the flag
-preCloseLongFlag := iff(isTakeProfitStrategy4() and isLongPositionOpen() and not isPreCloseLong() and isRsiEnteredAboveLevel(rsiLongCloseValue), true, preCloseLongFlag)
-preCloseShortFlag := iff(isAllowedShortTrading() and isTakeProfitStrategy4() and isShortPositionOpen() and not isPreCloseShort() and isRsiEnteredBelowLevel(rsiShortCloseValue), true, preCloseShortFlag)
-// Calculate signal to determine whether eligible to close existing position
-closeLongPositionCriteria = isLongPositionOpen() and hasReachedLongPositionTarget()
-closeShortPositionCriteria = isAllowedShortTrading() and isShortPositionOpen() and hasReachedShortPositionTarget()
-signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na)) 
-
-plotarrow(signalClosePosition, offset=0, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
-plotarrow(signalOpenPositionLaddering, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
-
 ladderingPositionSize = 0.0
 if(signalOpenPositionLaddering == 1 or signalOpenPositionLaddering == -1)
     openPositionRSI := rsiVal
@@ -203,8 +188,25 @@ if(signalOpenPositionLaddering == 1 or signalOpenPositionLaddering == -1)
     lastOpenPositionValue := close
     openPositionSize := openPositionSize + signalOpenPositionLaddering * ladderingPositionSize
 
+currentProfitPercent = calculateCurrentProfitPercent()
+isTrailingTakeProfitActivated := iff(not isTrailingTakeProfitActivated and currentProfitPercent >= startTrailingTakeProfitTarget, true, isTrailingTakeProfitActivated)
+maxCurrentProfitPercent := iff(isTrailingTakeProfitActivated and currentProfitPercent > 0 and currentProfitPercent > maxCurrentProfitPercent, currentProfitPercent, maxCurrentProfitPercent)
+
+//bbb = iff(isTrailingTakeProfitActivated, 1, 0)
+//ccc = iff(isTrailingTakeProfitCloseCondition(), 1, 0)
+//plotchar(0.00078+bbb*0.000005, color=#ffffffff, location=location.absolute, char='o')
+//plotchar(0.00079+ccc*0.000005, color=#ff0000ff, location=location.absolute, char='o')
+
+// Determine if pre-close criteria is met and set the flag
+preCloseLongFlag := iff(isTakeProfitStrategy1() and isLongPositionOpen() and not isPreCloseLong() and isRsiEnteredAboveLevel(rsiLongCloseValue), true, preCloseLongFlag)
+preCloseShortFlag := iff(isAllowedShortTrading() and isTakeProfitStrategy1() and isShortPositionOpen() and not isPreCloseShort() and isRsiEnteredBelowLevel(rsiShortCloseValue), true, preCloseShortFlag)
+// Calculate signal to determine whether eligible to close existing position
+closeLongPositionCriteria = isLongPositionOpen() and hasReachedLongPositionTarget()
+closeShortPositionCriteria = isAllowedShortTrading() and isShortPositionOpen() and hasReachedShortPositionTarget()
+signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na))
+
 if(signalClosePosition == 1 or signalClosePosition == -1)
-    preOpenLongFlag   := false
+    preOpenLongFlag   := false 
     preOpenShortFlag  := false
     preOpenLongFlag2  := false
     preOpenShortFlag2 := false
@@ -215,8 +217,13 @@ if(signalClosePosition == 1 or signalClosePosition == -1)
     avgOpenPositionValue := 0.0
     lastOpenPositionValue := 0.0
     currentOpenPositionLadderingCount := 0.0
- 
+    maxCurrentProfitPercent := 0.0
+    isTrailingTakeProfitActivated := false
+
 plot(0, color=black)
+
+plotarrow(signalClosePosition, offset=0, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
+plotarrow(signalOpenPositionLaddering, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
  
 alertcondition(signalOpenPositionLaddering == 1,  title='0201 - Min/Max RSI Alert - Signal to Open Long Position', message='Min/Max RSI Strategy - Signal to Open Long Position!')
 alertcondition(signalOpenPositionLaddering == -1, title='0202 - Min/Max RSI Alert - Signal to Open Short Position', message='Min/Max RSI Strategy - Signal to Open Short Position!')

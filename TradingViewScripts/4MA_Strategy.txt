@@ -1,28 +1,19 @@
 //@version=3
-strategy("4 MA Strategy", pyramiding = 0, calc_on_order_fills=false, overlay=true, commission_type=strategy.commission.percent, commission_value=0.25) 
+strategy(title="4 MA Strategy", pyramiding = 0, calc_on_order_fills=false, overlay=true, commission_type=strategy.commission.percent, commission_value=0.25) 
 
 //////////////////////////////////////////////////////////////
-// **************** 4 MA Strategy - v0.4 *********************
+// **************** 4 MA Strategy - v0.5 *********************
 // - Implemented trade signal when EMA 55 and EMA 200 crossing over
-// - Implemented trade signal when RSI value exceeding predefined min/max value 
 ////////////////////////////////////////////////////////////// 
+
 
 openPositionSize = 0.0 
 openPositionSize := nz(openPositionSize[1], 0.0)   
 
-//maxidf = input(title="Max Intraday Filled Orders", defval=10) 
-//strategy.risk.max_intraday_filled_orders(maxidf)
+debugSignalLine = input(title="Debug Signal Line", type=float, defval=6000)
 
-traderType = input(title="Trader Type", defval="All", options=["All", "Longs Only"])
-rsiMinValue = input(title="RSI Min Value", type=integer, defval=15)
-rsiMaxValue = input(title="RSI Max Value", type=integer, defval=85)
-debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
-
-shortestEMA = ema(close, 8)
 longEMA = ema(close, 55)
 longestEMA = ema(close, 200)
-rsiVal = rsi(close, 14)
-volumeMA=sma(volume, 20)
 
 isPositionClosed() =>
     openPositionSize == 0
@@ -34,11 +25,10 @@ isShortPositionOpen() =>
     openPositionSize < 0
     
 isAllowedShortTrading() =>
-    traderType == "All"
+    iff(syminfo.prefix == "BITTREX", false, iff(syminfo.prefix == "BITFINEX", true, true))
     
 isEmaCrossover(firstEMA, secondEMA) =>
     not na(firstEMA) and not na(secondEMA) and crossover(firstEMA, secondEMA)
-
 
 // Calculate signal to determine whether eligible to open a new position
 openLongPositionCriteria = isPositionClosed() and isEmaCrossover(longEMA, longestEMA)
@@ -46,11 +36,12 @@ openShortPositionCriteria = isAllowedShortTrading() and isPositionClosed() and i
 signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, na)) 
 // Calculate signal to determine whether eligible to close existing position
 closeLongPositionCriteria = isLongPositionOpen() and isEmaCrossover(longestEMA, longEMA) 
-closeShortPositionCriteria = isAllowedShortTrading() and isShortPositionOpen() and isEmaCrossover(longEMA, longestEMA)
+closeShortPositionCriteria = isShortPositionOpen() and isEmaCrossover(longEMA, longestEMA)
 signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na)) 
 
+
 //plotchar(debugSignalLine+sss*debugSignalLine*0.03, color=#00ff00ff, location=location.absolute, char='o')
-//plotchar(debugSignalLine*1.1+signalClosePosition*debugSignalLine*0.03, color=#ff0000ff, location=location.absolute, char='o')
+//plotchar(debugSignalLine + sss, color=#ff0000ff, location=location.absolute, char='o')
 
 plotarrow(signalClosePosition, offset=0, colorup=#fc28fcff, colordown=#773f0fff, maxheight=150, minheight=130, transp=0)
 plotarrow(signalOpenPosition, colorup=#fc28fcff, colordown=#773f0fff, maxheight=150, minheight=130, transp=0)
@@ -67,7 +58,7 @@ if(signalClosePosition == 1)
     strategy.order("Open New Long", strategy.long)
     openPositionSize := 1
     
-if(signalClosePosition == -1)
+if(signalClosePosition == -1 and isAllowedShortTrading())
     strategy.order("Open New Short", strategy.short)
     openPositionSize := -1
 
