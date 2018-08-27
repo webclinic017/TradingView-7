@@ -2,17 +2,35 @@
 study(title="4 MA Strategy Indicator", overlay=true) 
 
 //////////////////////////////////////////////////////////////
-// **************** 4 MA Strategy Indicator - v0.5 *********************
+// **************** 4 MA Strategy Indicator - v0.6 *********************
 // - Implemented trade signal when EMA 55 and EMA 200 crossing over
+// - Added checking for stop-loss condition
+// - Added checking for not opening trade if price situated far above/below of EMA 200
 ////////////////////////////////////////////////////////////// 
 
+openPositionValue = 0.0 
+openPositionValue := nz(openPositionValue[1], 0.0)
 openPositionSize = 0.0 
-openPositionSize := nz(openPositionSize[1], 0.0)   
+openPositionSize := nz(openPositionSize[1], 0.0) 
+ema200CrossValue = 0.0 
+ema200CrossValue := nz(ema200CrossValue[1], 0.0) 
+waitUntilEMACrossover = false 
+waitUntilEMACrossover := nz(waitUntilEMACrossover[1], false) 
 
-debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
+// TBC
+//takeProfitEnabled = input(title="Take-Profit Enabled", type=bool, defval=true)
+//takeProfitValue = input(title="Take-Profit Value, %", type=float, defval=1.0)
 
-longEMA = ema(close, 55)
-longestEMA = ema(close, 200)
+ema200ROCFlatTrendAllowance = input(title="EMA 200 ROC Level Flat Trend Allowance, %", type=float, defval=0.3)
+//stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=true)
+//stopLossValue = input(title="Stop-Loss Value, %", type=float, defval=2.0)
+debugSignalLine = input(title="Debug Signal Line", type=float, defval=6000)
+
+ema8 = ema(close, 8)
+ema13 = ema(close, 13)
+ema21 = ema(close, 21)
+ema55 = ema(close, 55)
+ema200 = ema(close, 200)
 
 isPositionClosed() =>
     openPositionSize == 0
@@ -29,18 +47,45 @@ isAllowedShortTrading() =>
 isEmaCrossover(firstEMA, secondEMA) =>
     not na(firstEMA) and not na(secondEMA) and crossover(firstEMA, secondEMA)
 
+isAllEmasFormedInLine(isLongPositionType) =>
+    if(isLongPositionType == true)
+        ema8 > ema13 and ema13 > ema21 and ema21 > ema55 and ema55 > ema200
+    else
+        ema8 < ema13 and ema13 < ema21 and ema21 < ema55 and ema55 < ema200
+
+getCommissionValue() =>
+    iff(syminfo.prefix == "BITTREX", 0.25, iff(syminfo.prefix == "BITFINEX", 0.1, 0.25))
+
+//getActualStopLoss() =>
+//    stopLossValue - getCommissionValue() * 2
+
+//isStopLossCondition(isLongPositionType) =>
+//    if(isLongPositionType == true)
+//        iff(stopLossEnabled == true and close < openPositionValue and ((openPositionValue - close)*100/openPositionValue) >= getActualStopLoss(), true, false)
+//    else
+//        iff(stopLossEnabled == true and close > openPositionValue and ((close - openPositionValue)*100/openPositionValue) >= getActualStopLoss(), true, false)
+
+isFirstTradeAfterEMACrossover() =>
+    waitUntilEMACrossover == false
+
+ema200CrossValue := iff(isEmaCrossover(ema200, ema55) or isEmaCrossover(ema55, ema200), ema200, ema200CrossValue)
+if(not isFirstTradeAfterEMACrossover() and ema200CrossValue[1] != ema200CrossValue)
+    waitUntilEMACrossover := false
+
+isFlatTrend() =>
+    iff(abs((ema200CrossValue - ema200) * 100/ema200CrossValue) < ema200ROCFlatTrendAllowance, true, false)
 
 // Calculate signal to determine whether eligible to open a new position
-openLongPositionCriteria = isPositionClosed() and isEmaCrossover(longEMA, longestEMA)
-openShortPositionCriteria = isAllowedShortTrading() and isPositionClosed() and isEmaCrossover(longestEMA, longEMA)
+openLongPositionCriteria = isPositionClosed() and isFirstTradeAfterEMACrossover() and isAllEmasFormedInLine(true) and not isFlatTrend()
+openShortPositionCriteria = isAllowedShortTrading() and isFirstTradeAfterEMACrossover() and isPositionClosed() and isAllEmasFormedInLine(false) and not isFlatTrend()
 signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, na)) 
 // Calculate signal to determine whether eligible to close existing position
-closeLongPositionCriteria = isLongPositionOpen() and isEmaCrossover(longestEMA, longEMA) 
-closeShortPositionCriteria = isShortPositionOpen() and isEmaCrossover(longEMA, longestEMA)
+closeLongPositionCriteria = isLongPositionOpen() and isEmaCrossover(ema200, ema8)
+closeShortPositionCriteria = isShortPositionOpen() and isEmaCrossover(ema8, ema200)
 signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na)) 
 
 //plotchar(debugSignalLine+sss*debugSignalLine*0.03, color=#00ff00ff, location=location.absolute, char='o')
-//plotchar(debugSignalLine*1.1+signalClosePosition*debugSignalLine*0.03, color=#ff0000ff, location=location.absolute, char='o')
+//plotchar(debugSignalLine + sss, color=#ff0000ff, location=location.absolute, char='o')
 
 plotarrow(signalClosePosition, offset=0, colorup=#fc28fcff, colordown=#773f0fff, maxheight=150, minheight=130, transp=0)
 plotarrow(signalOpenPosition, colorup=#fc28fcff, colordown=#773f0fff, maxheight=150, minheight=130, transp=0)
@@ -48,13 +93,14 @@ plotarrow(signalOpenPosition, colorup=#fc28fcff, colordown=#773f0fff, maxheight=
 openPositionSize := iff(signalOpenPosition == 1, 1, iff(signalOpenPosition == -1, -1, openPositionSize))
 openPositionSize := iff(signalClosePosition == 1 or signalClosePosition == -1, 0, openPositionSize)
 
-if(signalClosePosition == 1)
-    openPositionSize := 1
+if(signalOpenPosition == 1 or signalOpenPosition == -1)    
+    openPositionValue := close
     
-if(signalClosePosition == -1)
-    openPositionSize := -1
+if(signalClosePosition == 1 or signalClosePosition == -1)
+    openPositionValue := 0.0
+    waitUntilEMACrossover := true
 
-//alertcondition(signalOpenPosition != 0, title='0101 - 4 MA Alert - Signal to Open Position', message='4 MA Strategy - Signal to Open Position!')
-alertcondition(signalClosePosition != 0, title='0102 - 4 MA Alert - Signal to Close and Open New Position', message='4 MA Strategy - Signal to Close and Open Position!')
+alertcondition(signalOpenPosition != 0, title='0101 - 4 MA Alert - Signal to Open Position', message='4 MA Strategy - Signal to Open Position!')
+alertcondition(signalClosePosition != 0, title='0102 - 4 MA Alert - Signal to Close Position', message='4 MA Strategy - Signal to Close Position!')
 
 
