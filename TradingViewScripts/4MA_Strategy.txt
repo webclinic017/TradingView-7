@@ -2,17 +2,11 @@
 strategy("4 MA Strategy", pyramiding = 0, calc_on_order_fills=false, overlay=true, commission_type=strategy.commission.percent, commission_value=0.25) 
 
 /////////////////////////////////////////////////////
-// ************ 4 MA Strategy - v0.1 **************** 
-/////////////////////////////////////////////////////
+// ************ 4 MA Strategy - v0.2 **************** 
+///////////////////////////////////////////////////// 
 
 openPositionSize = 0.0 
-openPositionPrice = 0.0 
-openPositionBarId = 0
-currentBarId = 1
-openPositionSize := nz(openPositionSize[1], 0.0) 
-openPositionPrice := nz(openPositionPrice[1], 0.0) 
-openPositionBarId := nz(openPositionBarId[1], 0) 
-currentBarId := nz(currentBarId[1], 1) 
+openPositionSize := nz(openPositionSize[1], 0.0)   
 
 //maxidf = input(title="Max Intraday Filled Orders", defval=10) 
 //strategy.risk.max_intraday_filled_orders(maxidf)
@@ -30,15 +24,13 @@ mediumEMA = ema(close, mediumPeriod)
 longestEMA = ema(close, longestPeriod)
 rsiVal = rsi(close, 14)
 
-lastNCandlesCrossedLongestEma = longestEMA[2] < high[2] and longestEMA[2] > low[2] or longestEMA[1] < high[1] and longestEMA[1] > low[1] or longestEMA < high and longestEMA > low
-
 // Calculate signal to determine whether eligible to open a new position
-openLongPositionCriteria =  strategy.position_size == 0 and shortestEMA > shortEMA and shortEMA > longestEMA and lastNCandlesCrossedLongestEma == false and rsiVal >= 65
-openShortPositionCriteria = traderType == "All" and strategy.position_size == 0 and shortestEMA < shortEMA and shortEMA < longestEMA and lastNCandlesCrossedLongestEma == false and rsiVal <= 35
+openLongPositionCriteria = openPositionSize == 0 and shortestEMA[1] <= longestEMA[1] and shortestEMA >= longestEMA and rsiVal >= 60
+openShortPositionCriteria = traderType == "All" and openPositionSize == 0 and shortestEMA[1] >= longestEMA[1] and shortestEMA <= longestEMA and rsiVal <= 40
 signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, na)) 
 // Calculate signal to determine whether eligible to close existing position
-closeLongPositionCriteria = strategy.position_size > 0 and shortestEMA[1] > longestEMA[1] and shortestEMA < longestEMA
-closeShortPositionCriteria = traderType == "All" and strategy.position_size < 0 and shortestEMA[1] < longestEMA[1] and shortestEMA > longestEMA
+closeLongPositionCriteria = openPositionSize > 0 and shortestEMA[1] > longestEMA[1] and shortestEMA < longestEMA
+closeShortPositionCriteria = traderType == "All" and openPositionSize < 0 and shortestEMA[1] < longestEMA[1] and shortestEMA > longestEMA
 signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na)) 
 
 //plotchar(debugSignalLine+sss*debugSignalLine*0.03, color=#00ff00ff, location=location.absolute, char='o')
@@ -47,9 +39,10 @@ signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShort
 plotarrow(signalClosePosition, offset=0, colorup=#fc28fcff, colordown=#773f0fff, maxheight=150, minheight=130, transp=0)
 plotarrow(signalOpenPosition, colorup=#fc28fcff, colordown=#773f0fff, maxheight=150, minheight=130, transp=0)
 
+openPositionSize := iff(signalOpenPosition == 1, 1, iff(signalOpenPosition == -1, -1, openPositionSize))
+openPositionSize := iff(signalClosePosition == 1 or signalClosePosition == -1, 0, openPositionSize)
+
 strategy.order("Close Long", strategy.short, when = signalClosePosition == -1)
 strategy.order("Close Short", strategy.long, when =  signalClosePosition == 1)
 strategy.order("Open Long", strategy.long, when = signalOpenPosition == 1)
 strategy.order("Open Short", strategy.short, when = signalOpenPosition == -1)
-
-
