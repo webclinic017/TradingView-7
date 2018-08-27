@@ -1,0 +1,26 @@
+{
+	"BTCUSD": {
+		"order_precision": 8,
+		"market_precision": 2
+	},
+	"ETHUSD": {
+		"order_precision": 6,
+		"market_precision": 2
+	},
+	"ETHBTC": {
+		"order_precision": 6,
+		"market_precision": 5
+	},
+	"ZECUSD": {
+		"order_precision": 6,
+		"market_precision": 2
+	},
+	"ZECBTC": {
+		"order_precision": 6,
+		"market_precision": 5
+	},
+	"ZECETH": {
+		"order_precision": 6,
+		"market_precision": 4
+	}
+}
