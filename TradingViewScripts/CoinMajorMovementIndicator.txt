@@ -5,14 +5,19 @@ btcPriceMovementThresholdValue = input(title="BTC Price Movement Value", type=fl
 btcPriceMovementThresholdPercent = input(title="BTC Price Movement %", type=float, defval=1.0)
 altcoinPriceMovementThresholdPercent = input(title="Altcoin Price Movement %", type=float, defval=1.0)
 
-priceMovementValue = abs(open - close)
-priceMovementPercent = abs(open - close)*100/close
+priceMovementValue = close - open
+priceMovementPercent = priceMovementValue*100/open
 
 plot(0, color=black)
 
-btcPriceMovementAlertFlag = (ticker == "BTCUSD" or ticker == "BTCUSDT") and (priceMovementValue >= btcPriceMovementThresholdValue or priceMovementPercent >= btcPriceMovementThresholdPercent)
-altcoinPriceMovementAlertFlag = (ticker != "BTCUSD" and ticker != "BTCUSDT") and priceMovementPercent >= altcoinPriceMovementThresholdPercent
+btcPriceMovementUpAlertFlag = (ticker == "BTCUSD" or ticker == "BTCUSDT") and (priceMovementValue > 0 and (priceMovementValue >= btcPriceMovementThresholdValue or priceMovementPercent >= btcPriceMovementThresholdPercent))
+btcPriceMovementDownAlertFlag = (ticker == "BTCUSD" or ticker == "BTCUSDT") and (priceMovementValue < 0 and (abs(priceMovementValue) >= btcPriceMovementThresholdValue or abs(priceMovementPercent) >= btcPriceMovementThresholdPercent))
 
-alertcondition(btcPriceMovementAlertFlag == true, title='0101 - Bitcoin Major Movement Alert', message='Bitcoin Major Movement Alert!')
-alertcondition(altcoinPriceMovementAlertFlag == true, title='0102 - Altcoin Major Movement Alert', message='Altcoin Major Movement Alert!')
+altcoinPriceMovementUpAlertFlag = (ticker != "BTCUSD" and ticker != "BTCUSDT") and priceMovementValue > 0 and priceMovementPercent >= altcoinPriceMovementThresholdPercent
+altcoinPriceMovementDownAlertFlag = (ticker != "BTCUSD" and ticker != "BTCUSDT") and priceMovementValue < 0 and abs(priceMovementPercent) >= altcoinPriceMovementThresholdPercent
+
+alertcondition(btcPriceMovementUpAlertFlag == true, title='0101 - Bitcoin Major Movement UP Alert', message='Bitcoin Major Movement UP Alert!')
+alertcondition(btcPriceMovementDownAlertFlag == true, title='0102 - Bitcoin Major Movement DOWN Alert', message='Bitcoin Major Movement DOWN Alert!')
+alertcondition(altcoinPriceMovementUpAlertFlag == true, title='0103 - Altcoin Major Movement UP Alert', message='Altcoin Major Movement UP Alert!')
+alertcondition(altcoinPriceMovementDownAlertFlag == true, title='0104 - Altcoin Major Movement DOWN Alert', message='Altcoin Major Movement DOWN Alert!')
 
