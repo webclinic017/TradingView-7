@@ -2,11 +2,12 @@
 study(title="Min/Max RSI Strategy Indicator", overlay=true) 
 
 //////////////////////////////////////////////////////////////
-// **************** Min/Max RSI Strategy - v0.5 *********************
+// **************** Min/Max RSI Strategy Indicator - v0.6 *********************
 // - Implemented checks if current price action in a well established trend - in this case need to open a trade in the direction of the trend
 // - Implemented laddering when opening a position
 // - Splitted Open Position alert into Long and Short types
 // - Implemented trailing take profit
+// - Implemented trailing stop loss
 ////////////////////////////////////////////////////////////// 
 
 preOpenLongFlag = false
@@ -37,12 +38,16 @@ isBearishTrend = false
 isBearishTrend := nz(isBearishTrend[1], false) 
 currentOpenPositionLadderingCount = 0.0 
 currentOpenPositionLadderingCount := nz(currentOpenPositionLadderingCount[1], 0.0)
-maxCurrentProfitPercent = 0.0 
-maxCurrentProfitPercent := nz(maxCurrentProfitPercent[1], 0.0)
+maxCurrentProfitPct = 0.0 
+maxCurrentProfitPct := nz(maxCurrentProfitPct[1], 0.0)
 isTrailingTakeProfitActivated = false
 isTrailingTakeProfitActivated := nz(isTrailingTakeProfitActivated[1], false)
+isTrailingStopLossActivated = false
+isTrailingStopLossActivated := nz(isTrailingStopLossActivated[1], false)
+currentTrailingStopLossValue = 0.0
+currentTrailingStopLossValue := nz(currentTrailingStopLossValue[1], 0.0)
 
-commissionValue = input(title="Full Trade Commission Value, %", type=float, defval=0.4)
+commissionValue = input(title="Full Trade Commission Value, %", type=float, defval=0.2)
 rsiLongOpenValue = input(title="RSI Long Open Value", type=integer, defval=28)
 rsiTrendLongOpenValue = input(title="RSI Trend Long Open Value", type=integer, defval=34)
 rsiLongCloseValue = input(title="RSI Long Close Value", type=integer, defval=69)
@@ -50,13 +55,13 @@ rsiShortOpenValue = input(title="RSI Short Open Value", type=integer, defval=72)
 rsiTrendShortOpenValue = input(title="RSI Trend Short Open Value", type=integer, defval=66)
 rsiShortCloseValue = input(title="RSI Short Close Value", type=integer, defval=31)
 takeProfitStrategy = input(title="Take Profit Strategy", defval="1 - RSI Reached Overbought(Oversold) Zone", options=["1 - RSI Reached Overbought(Oversold) Zone"])
-rsiTraversalNumberPips = input(title="RSI Traversal # Pips Value", type=float, defval=10.0)
-stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=false)
-stopLossValue = input(title="Stop-Loss Value, %", type=float, defval=3.65)
+stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=true)
+trailingStopLossDistancePct = input(title="Trailing Stop-Loss Distance, %", type=float, defval=3.5)
 ema200ROCFlatTrendAllowance = input(title="EMA 200 ROC Level Flat Trend Allowance, %", type=float, defval=1.0)
 debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
-openPosLadderingMaxNum = input(title="Laddering During Opening Position (Max Num)", type=integer, defval=4)
+openPosLadderingMaxNum = input(title="Laddering During Opening Position (Max Num)", type=integer, defval=1) 
 openPosLadderingThreshold = input(title="Difference Between Price And Last Open Price When Laddering, %", type=float, defval=1.5)
+trailingOpeningPositionThreshold = input(title="Trailing Opening Position Threshold, %", type=float, defval=1.0)
 startTrailingTakeProfitTarget = input(title="Take Profit Trailing Start Target, %", type=float, defval=1.0)
 trailingTakeProfitDistance = input(title="Trailing Take Profit Distance, %", type=float, defval=0.5)
 
@@ -127,33 +132,34 @@ getOpenPosLadderingSizeByIndex(index) =>
     
 ladderNewOpenPositionValue(newPositionSize, price) =>
     (avgOpenPositionValue * abs(openPositionSize) + newPositionSize * price)/(abs(openPositionSize) + newPositionSize)
-    
-getActualStopLoss() =>
-    stopLossValue - commissionValue 
 
-calculateCurrentProfitPercent() =>
+calculateCurrentProfitPct() =>
     iff(isLongPositionOpen(), (close - avgOpenPositionValue) * 100 / avgOpenPositionValue, iff(isShortPositionOpen(), (avgOpenPositionValue - close) * 100 / avgOpenPositionValue, 0.0))
 
 isTrailingTakeProfitCloseCondition() =>
-    c = calculateCurrentProfitPercent()
-    iff(isTrailingTakeProfitActivated == true and c > 0 and c <= (maxCurrentProfitPercent - trailingTakeProfitDistance), true, false)
+    c = calculateCurrentProfitPct()
+    iff(isTrailingTakeProfitActivated == true and c > 0 and c <= (maxCurrentProfitPct - trailingTakeProfitDistance), true, false)
 
-isStopLossCondition(isLongPositionType) =>
-    if(isLongPositionType == true)
-        iff(stopLossEnabled == true and hasReachedLadderingMaxNum() and close < avgOpenPositionValue and ((avgOpenPositionValue - close)*100/avgOpenPositionValue) >= getActualStopLoss(), true, false)
-    else
-        iff(stopLossEnabled == true and hasReachedLadderingMaxNum() and close > avgOpenPositionValue and ((close - avgOpenPositionValue)*100/avgOpenPositionValue) >= getActualStopLoss(), true, false)
+calculateCurrentStopLossDistancePct() =>
+    iff(isLongPositionOpen(), (close - currentTrailingStopLossValue) * 100 / currentTrailingStopLossValue, iff(isShortPositionOpen(), (currentTrailingStopLossValue - close) * 100 / currentTrailingStopLossValue, 0.0))
+
+getCurrentTrailingStopLossValue(baseValue) => 
+    iff(isLongPositionOpen(), baseValue * (1 - trailingStopLossDistancePct/100.0), iff(isShortPositionOpen(), baseValue * (1 + trailingStopLossDistancePct/100.0), 0.0))
+
+isTrailingStopLossCondition() =>
+    c = calculateCurrentStopLossDistancePct()
+    iff(isTrailingStopLossActivated and stopLossEnabled == true and c < 0, true, false)
 
 isTakeProfitStrategy1() =>
     takeProfitStrategy == "1 - RSI Reached Overbought(Oversold) Zone"
 
 hasReachedLongPositionTarget() =>
     f1 = iff(isTakeProfitStrategy1() and isPreCloseLong() and isRsiEnteredBelowLevel(rsiLongCloseValue), true, false)
-    isTrailingTakeProfitCloseCondition() or isStopLossCondition(true) or f1
+    isTrailingTakeProfitCloseCondition() or isTrailingStopLossCondition() or f1
 
 hasReachedShortPositionTarget() =>
     f1 = iff(isTakeProfitStrategy1() and isPreCloseShort() and isRsiEnteredAboveLevel(rsiShortCloseValue), true, false)
-    isTrailingTakeProfitCloseCondition() or isStopLossCondition(false) or f1
+    isTrailingTakeProfitCloseCondition() or isTrailingStopLossCondition() or f1
     
 isEmaCrossover(firstEMA, secondEMA) =>
     not na(firstEMA) and not na(secondEMA) and crossover(firstEMA, secondEMA)  
@@ -188,9 +194,13 @@ if(signalOpenPositionLaddering == 1 or signalOpenPositionLaddering == -1)
     lastOpenPositionValue := close
     openPositionSize := openPositionSize + signalOpenPositionLaddering * ladderingPositionSize
 
-currentProfitPercent = calculateCurrentProfitPercent()
-isTrailingTakeProfitActivated := iff(not isTrailingTakeProfitActivated and currentProfitPercent >= startTrailingTakeProfitTarget, true, isTrailingTakeProfitActivated)
-maxCurrentProfitPercent := iff(isTrailingTakeProfitActivated and currentProfitPercent > 0 and currentProfitPercent > maxCurrentProfitPercent, currentProfitPercent, maxCurrentProfitPercent)
+currentProfitPct = calculateCurrentProfitPct()
+isTrailingTakeProfitActivated := iff(not isTrailingTakeProfitActivated and currentProfitPct >= startTrailingTakeProfitTarget, true, isTrailingTakeProfitActivated)
+maxCurrentProfitPct := iff(isTrailingTakeProfitActivated and currentProfitPct > 0 and currentProfitPct > maxCurrentProfitPct, currentProfitPct, maxCurrentProfitPct)
+
+if(not isTrailingStopLossActivated and stopLossEnabled == true and hasReachedLadderingMaxNum())
+    isTrailingStopLossActivated := true
+    currentTrailingStopLossValue := getCurrentTrailingStopLossValue(avgOpenPositionValue)
 
 //bbb = iff(isTrailingTakeProfitActivated, 1, 0)
 //ccc = iff(isTrailingTakeProfitCloseCondition(), 1, 0)
@@ -217,8 +227,15 @@ if(signalClosePosition == 1 or signalClosePosition == -1)
     avgOpenPositionValue := 0.0
     lastOpenPositionValue := 0.0
     currentOpenPositionLadderingCount := 0.0
-    maxCurrentProfitPercent := 0.0
+    maxCurrentProfitPct := 0.0
     isTrailingTakeProfitActivated := false
+    isTrailingStopLossActivated := false
+    currentTrailingStopLossValue := 0.0
+
+if(isTrailingStopLossActivated and stopLossEnabled == true)
+    c = calculateCurrentStopLossDistancePct()
+    if(c > trailingStopLossDistancePct)
+        currentTrailingStopLossValue := getCurrentTrailingStopLossValue(close)
 
 plot(0, color=black)
 
