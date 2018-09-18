@@ -55,7 +55,7 @@ rsiTrendShortOpenValue = input(title="RSI Trend Short Open Value", type=integer,
 rsiShortCloseValue = input(title="RSI Short Close Value", type=integer, defval=31)
 takeProfitStrategy = input(title="Take Profit Strategy", defval="1 - RSI Reached Overbought(Oversold) Zone", options=["1 - RSI Reached Overbought(Oversold) Zone"])
 stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=true)
-trailingStopLossDistancePct = input(title="Trailing Stop-Loss Distance, %", type=float, defval=3.5)
+trailingStopLossDistancePct = input(title="Trailing Stop-Loss Distance, %", type=float, defval=2.0)
 ema200ROCFlatTrendAllowance = input(title="EMA 200 ROC Level Flat Trend Allowance, %", type=float, defval=1.0)
 debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
 openPosLadderingMaxNum = input(title="Laddering During Opening Position (Max Num)", type=integer, defval=1) 
