@@ -1,0 +1,87 @@
+//@version=3 
+study(title="Alex Aroon Trend Strategy Indicator", overlay=true) 
+
+////////////////////////////////////////////////////////////////////////////////
+// **************** Alex Aroon Trend Strategy Indicator - v0.1 *********************
+// - Initial implementation
+//////////////////////////////////////////////////////////////////////////////// 
+
+openPositionSize = 0.0 
+openPositionSize := nz(openPositionSize[1], 0.0)
+maxCurrentProfitPct = 0.0 
+maxCurrentProfitPct := nz(maxCurrentProfitPct[1], 0.0)
+isTrailingTakeProfitActivated = false
+isTrailingTakeProfitActivated := nz(isTrailingTakeProfitActivated[1], false)
+avgOpenPositionValue = 0.0 
+avgOpenPositionValue := nz(avgOpenPositionValue[1], 0.0)
+trailingTakeProfitDistance = 0.0
+trailingTakeProfitDistance := nz(trailingTakeProfitDistance[1], 0.0)
+
+startTrailingTakeProfitTarget = input(title="Take Profit Trailing Start Target, %", type=float, defval=3.5)
+defaultTrailingTakeProfitDistance = input(title="Trailing Take Profit Distance, %", type=float, defval=1.5)
+
+isLongPositionOpen() =>
+    openPositionSize > 0
+
+isShortPositionOpen() =>
+    openPositionSize < 0 
+
+calculateCurrentProfitPct() => 
+    iff(isLongPositionOpen(), (close - avgOpenPositionValue) * 100 / avgOpenPositionValue, iff(isShortPositionOpen(), (avgOpenPositionValue - close) * 100 / avgOpenPositionValue, 0.0))
+
+isTrailingTakeProfitCloseCondition() =>
+    c = calculateCurrentProfitPct()
+    iff(isTrailingTakeProfitActivated == true and c > 0 and (maxCurrentProfitPct - c) > trailingTakeProfitDistance, true, false)
+
+inRange(value, minV, maxV) =>
+    value >= minV and value <= maxV
+
+fastEMAValue = 55
+slowEMAValue = 200
+fastEMA = ema(close, fastEMAValue)
+slowEMA = ema(close, slowEMAValue)
+length = input(slowEMAValue, minval=1)
+upper = 100 * (highestbars(high, length+1) + length)/length
+lower = 100 * (lowestbars(low, length+1) + length)/length
+
+currentProfitPct = calculateCurrentProfitPct()
+isTrailingTakeProfitActivated := iff(not isTrailingTakeProfitActivated and currentProfitPct >= startTrailingTakeProfitTarget and (isLongPositionOpen() and close < slowEMA or isShortPositionOpen() and close > slowEMA), true, isTrailingTakeProfitActivated)
+maxCurrentProfitPct := iff(isTrailingTakeProfitActivated and currentProfitPct > 0 and currentProfitPct > maxCurrentProfitPct, currentProfitPct, maxCurrentProfitPct)
+newDistance = 4 * stdev(ohlc4, 14) * 100 / ohlc4
+trailingTakeProfitDistance := iff(maxCurrentProfitPct > maxCurrentProfitPct[1], newDistance, trailingTakeProfitDistance)
+
+openLongCondition = iff(openPositionSize == 0 and crossover(upper[1], lower[1]) and inRange(lower[1], 20,  80) and inRange(upper, 90, 100), true, false)
+openShortCondition = iff(openPositionSize == 0 and crossover(lower[1], upper[1]) and inRange(upper[1], 20,  80) and inRange(lower, 90, 100), true, false)
+closeLongCondition = iff(openPositionSize == 1 and (isTrailingTakeProfitCloseCondition() or crossover(lower, upper)), true, false)
+closeShortCondition = iff(openPositionSize == -1 and (isTrailingTakeProfitCloseCondition() or crossover(upper, lower)), true, false)
+
+// bbb = iff(isTrailingTakeProfitActivated, 1, 0)
+// ccc = iff(isTrailingTakeProfitCloseCondition(), 1, 0)
+// plotchar(0.000082+bbb*0.0000005, color=#ffffffff, location=location.absolute, char='o')
+// plotchar(0.000084+ccc*0.0000005, color=#ff0000ff, location=location.absolute, char='o')
+//plotchar(iff(trailingTakeProfitDistance > 0, 0.068+trailingTakeProfitDistance*close/100, 0), color=#ffffffff, location=location.absolute, char='o')
+
+c = iff(openPositionSize != 0 and (closeLongCondition == true or closeShortCondition == true), -1 * openPositionSize, 0)
+o = iff(openPositionSize == 0 and openLongCondition == true, 1, iff(openPositionSize == 0 and openShortCondition == true, -1, 0))
+plotarrow(c, offset=0, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
+plotarrow(o, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
+
+if(openLongCondition == true)
+    openPositionSize := 1
+    avgOpenPositionValue := close
+
+if(openShortCondition == true)
+    openPositionSize := -1
+    avgOpenPositionValue := close
+   
+if(closeLongCondition == true or closeShortCondition == true)
+    openPositionSize := 0
+    maxCurrentProfitPct := 0.0
+    isTrailingTakeProfitActivated := false
+    avgOpenPositionValue := 0.0 
+    trailingTakeProfitDistance := 0.0
+
+alertcondition(openPositionSize == 0 and openLongCondition == true,  title='0201 - Aroon Trend Strategy Alert - Signal to Open Long Position', message='Aroon Trend Strategy - Signal to Open Long Position!')
+alertcondition(openPositionSize == 0 and openShortCondition == true, title='0202 - Aroon Trend Strategy Alert - Signal to Open Short Position', message='Aroon Trend Strategy - Signal to Open Short Position!')
+alertcondition(openPositionSize != 0 and (closeLongCondition == true or closeShortCondition == true), title='0203 - Aroon Trend Strategy Alert - Signal to Close Position', message='Aroon Trend Strategy - Signal to Close Position!')
+
