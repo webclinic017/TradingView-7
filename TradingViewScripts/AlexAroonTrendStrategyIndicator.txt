@@ -18,7 +18,8 @@ trailingTakeProfitDistance = 0.0
 trailingTakeProfitDistance := nz(trailingTakeProfitDistance[1], 0.0)
 
 startTrailingTakeProfitTarget = input(title="Take Profit Trailing Start Target, %", type=float, defval=3.5)
-defaultTrailingTakeProfitDistance = input(title="Trailing Take Profit Distance, %", type=float, defval=1.5)
+startTrailingTakeProfitTarget2 = input(title="Take Profit Trailing Start Target-2, %", type=float, defval=7.5)
+defaultTrailingTakeProfitDistance = input(title="Default Trailing Take Profit Distance, %", type=float, defval=1.5)
 
 isLongPositionOpen() =>
     openPositionSize > 0
@@ -45,9 +46,9 @@ upper = 100 * (highestbars(high, length+1) + length)/length
 lower = 100 * (lowestbars(low, length+1) + length)/length
 
 currentProfitPct = calculateCurrentProfitPct()
-isTrailingTakeProfitActivated := iff(not isTrailingTakeProfitActivated and currentProfitPct >= startTrailingTakeProfitTarget and (isLongPositionOpen() and close < slowEMA or isShortPositionOpen() and close > slowEMA), true, isTrailingTakeProfitActivated)
+isTrailingTakeProfitActivated := iff(not isTrailingTakeProfitActivated and currentProfitPct >= startTrailingTakeProfitTarget, true, isTrailingTakeProfitActivated)
 maxCurrentProfitPct := iff(isTrailingTakeProfitActivated and currentProfitPct > 0 and currentProfitPct > maxCurrentProfitPct, currentProfitPct, maxCurrentProfitPct)
-newDistance = 4 * stdev(ohlc4, 14) * 100 / ohlc4
+newDistance = 2 * stdev(ohlc4, 14) * 100 / ohlc4
 trailingTakeProfitDistance := iff(maxCurrentProfitPct > maxCurrentProfitPct[1], newDistance, trailingTakeProfitDistance)
 
 openLongCondition = iff(openPositionSize == 0 and crossover(upper[1], lower[1]) and inRange(lower[1], 20,  80) and inRange(upper, 90, 100), true, false)

@@ -1,5 +1,5 @@
 //@version=3
-strategy("Alex Aroon Trend Strategy", overlay=true)
+strategy("Alex Aroon Trend Strategy", calc_on_order_fills=false, overlay=true, initial_capital=1, commission_type=strategy.commission.percent, commission_value=0.1)
 
 ////////////////////////////////////////////////////////////////////////////////
 // **************** Alex Aroon Trend Strategy - v0.1 *********************
@@ -18,7 +18,8 @@ trailingTakeProfitDistance = 0.0
 trailingTakeProfitDistance := nz(trailingTakeProfitDistance[1], 0.0)
 
 startTrailingTakeProfitTarget = input(title="Take Profit Trailing Start Target, %", type=float, defval=3.5)
-defaultTrailingTakeProfitDistance = input(title="Trailing Take Profit Distance, %", type=float, defval=1.5)
+startTrailingTakeProfitTarget2 = input(title="Take Profit Trailing Start Target-2, %", type=float, defval=7.5)
+defaultTrailingTakeProfitDistance = input(title="Default Trailing Take Profit Distance, %", type=float, defval=1.5)
 
 isLongPositionOpen() =>
     openPositionSize > 0
@@ -45,9 +46,9 @@ upper = 100 * (highestbars(high, length+1) + length)/length
 lower = 100 * (lowestbars(low, length+1) + length)/length
 
 currentProfitPct = calculateCurrentProfitPct()
-isTrailingTakeProfitActivated := iff(not isTrailingTakeProfitActivated and currentProfitPct >= startTrailingTakeProfitTarget and (isLongPositionOpen() and close < slowEMA or isShortPositionOpen() and close > slowEMA), true, isTrailingTakeProfitActivated)
+isTrailingTakeProfitActivated := iff(not isTrailingTakeProfitActivated and currentProfitPct >= startTrailingTakeProfitTarget, true, isTrailingTakeProfitActivated)
 maxCurrentProfitPct := iff(isTrailingTakeProfitActivated and currentProfitPct > 0 and currentProfitPct > maxCurrentProfitPct, currentProfitPct, maxCurrentProfitPct)
-newDistance = 4 * stdev(ohlc4, 14) * 100 / ohlc4
+newDistance = 2 * stdev(ohlc4, 14) * 100 / ohlc4
 trailingTakeProfitDistance := iff(maxCurrentProfitPct > maxCurrentProfitPct[1], newDistance, trailingTakeProfitDistance)
 
 openLongCondition = iff(openPositionSize == 0 and crossover(upper[1], lower[1]) and inRange(lower[1], 20,  80) and inRange(upper, 90, 100), true, false)
@@ -55,16 +56,11 @@ openShortCondition = iff(openPositionSize == 0 and crossover(lower[1], upper[1])
 closeLongCondition = iff(openPositionSize == 1 and (isTrailingTakeProfitCloseCondition() or crossover(lower, upper)), true, false)
 closeShortCondition = iff(openPositionSize == -1 and (isTrailingTakeProfitCloseCondition() or crossover(upper, lower)), true, false)
 
-strategy.close("Long", when = openPositionSize == 1 and closeLongCondition == true)
-strategy.close("Short", when = openPositionSize == -1 and closeShortCondition == true)
-strategy.entry("Long", strategy.long,   when = openPositionSize == 0 and openLongCondition == true)
-strategy.entry("Short", strategy.short, when = openPositionSize == 0 and openShortCondition == true)
-
 // bbb = iff(isTrailingTakeProfitActivated, 1, 0)
 // ccc = iff(isTrailingTakeProfitCloseCondition(), 1, 0)
 // plotchar(0.000082+bbb*0.0000005, color=#ffffffff, location=location.absolute, char='o')
 // plotchar(0.000084+ccc*0.0000005, color=#ff0000ff, location=location.absolute, char='o')
-//plotchar(iff(trailingTakeProfitDistance > 0, 0.068+trailingTakeProfitDistance*close/100, 0), color=#ffffffff, location=location.absolute, char='o')
+//plotchar(iff(trailingTakeProfitDistance > 0, 0.000084+trailingTakeProfitDistance*close/100, 0), color=#ffffffff, location=location.absolute, char='o')
 
 if(openLongCondition == true)
     openPositionSize := 1
