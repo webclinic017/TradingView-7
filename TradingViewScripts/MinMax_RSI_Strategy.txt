@@ -214,10 +214,14 @@ closeLongPositionCriteria = isLongPositionOpen() and hasReachedLongPositionTarge
 closeShortPositionCriteria = isAllowedShortTrading() and isShortPositionOpen() and hasReachedShortPositionTarget()
 signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na))
 
-strategy.entry("Long",  strategy.long,  when = signalOpenPositionLaddering == 1, comment="Long")
-strategy.entry("Short", strategy.short, when = isAllowedShortTrading() and signalOpenPositionLaddering == -1, comment="Short")
-strategy.close("Long",  when = signalClosePosition == -1)
-strategy.close("Short", when = isAllowedShortTrading() and signalClosePosition == 1)
+if (time > timestamp(2018,1,1,0,0)) and time < timestamp(2018,9,1,0,0)
+    strategy.entry("Long",  strategy.long,  when = signalOpenPositionLaddering == 1, comment="Long")
+if (time > timestamp(2018,1,1,0,0)) and time < timestamp(2018,9,1,0,0)
+    strategy.entry("Short", strategy.short, when = isAllowedShortTrading() and signalOpenPositionLaddering == -1, comment="Short")
+if (time > timestamp(2018,1,1,0,0)) and time < timestamp(2018,9,1,0,0)
+    strategy.close("Long",  when = signalClosePosition == -1)
+if (time > timestamp(2018,1,1,0,0)) and time < timestamp(2018,9,1,0,0)
+    strategy.close("Short", when = isAllowedShortTrading() and signalClosePosition == 1)
 
 if(signalClosePosition == 1 or signalClosePosition == -1)
     preOpenLongFlag   := false 
