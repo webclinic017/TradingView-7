@@ -1,9 +1,10 @@
 //@version=3
-strategy("Alex Aroon Trend Strategy", calc_on_order_fills=false, overlay=true, initial_capital=1, commission_type=strategy.commission.percent, commission_value=0.1)
+strategy("Alex Aroon Trend Strategy", calc_on_order_fills=false, overlay=true, initial_capital=1, commission_type=strategy.commission.percent, commission_value=0.2)
 
 ////////////////////////////////////////////////////////////////////////////////
-// **************** Alex Aroon Trend Strategy - v0.1 *********************
+// **************** Alex Aroon Trend Strategy - v0.2 *********************
 // - Initial implementation
+// - Implemented Stop Loss
 //////////////////////////////////////////////////////////////////////////////// 
 
 openPositionSize = 0.0 
@@ -16,10 +17,15 @@ avgOpenPositionValue = 0.0
 avgOpenPositionValue := nz(avgOpenPositionValue[1], 0.0)
 trailingTakeProfitDistance = 0.0
 trailingTakeProfitDistance := nz(trailingTakeProfitDistance[1], 0.0)
+stopLossValue = 0.0 
+stopLossValue := nz(stopLossValue[1], 0.0)
 
+commissionValue = input(title="Full Trade Commission Value, %", type=float, defval=0.4)
+stopLossEnabled = input(title="Stop-Loss Enabled", type=bool, defval=true)
+minStopLossValue = input(title="Min Stop-Loss Value, %", type=float, defval=2.0)
+maxStopLossValue = input(title="Max Stop-Loss Value, %", type=float, defval=5.0)
 startTrailingTakeProfitTarget = input(title="Take Profit Trailing Start Target, %", type=float, defval=3.5)
 startTrailingTakeProfitTarget2 = input(title="Take Profit Trailing Start Target-2, %", type=float, defval=7.5)
-defaultTrailingTakeProfitDistance = input(title="Default Trailing Take Profit Distance, %", type=float, defval=1.5)
 
 isLongPositionOpen() =>
     openPositionSize > 0
@@ -34,6 +40,15 @@ isTrailingTakeProfitCloseCondition() =>
     c = calculateCurrentProfitPct()
     iff(isTrailingTakeProfitActivated == true and c > 0 and (maxCurrentProfitPct - c) > trailingTakeProfitDistance, true, false)
 
+getActualStopLoss() =>
+    stopLossValue - commissionValue
+    
+isStopLossCondition(isLongPositionType) =>
+    if(isLongPositionType == true)
+        iff(stopLossEnabled == true and openPositionSize == 1 and close < avgOpenPositionValue and ((avgOpenPositionValue - close)*100/close) >= getActualStopLoss(), true, false)
+    else
+        iff(stopLossEnabled == true and openPositionSize == -1 and close > avgOpenPositionValue and ((close - avgOpenPositionValue)*100/close) >= getActualStopLoss(), true, false)
+
 inRange(value, minV, maxV) =>
     value >= minV and value <= maxV
 
@@ -44,45 +59,62 @@ slowEMA = ema(close, slowEMAValue)
 length = input(slowEMAValue, minval=1)
 upper = 100 * (highestbars(high, length+1) + length)/length
 lower = 100 * (lowestbars(low, length+1) + length)/length
+__stdev = stdev(close, slowEMAValue)
+__stdevOHLC4 = stdev(ohlc4, slowEMAValue)
 
+calculateDynamicStopLossPct() =>
+    v = __stdev * 100 / close
+    r = iff(v < minStopLossValue, minStopLossValue, iff(v >= minStopLossValue and v <= maxStopLossValue, v, maxStopLossValue))
+    r
+
+calculateDynamicTakePrifitDistancePct() =>
+    2 * __stdevOHLC4 * 100 / ohlc4
+
+dsl = calculateDynamicStopLossPct()
 currentProfitPct = calculateCurrentProfitPct()
 isTrailingTakeProfitActivated := iff(not isTrailingTakeProfitActivated and currentProfitPct >= startTrailingTakeProfitTarget, true, isTrailingTakeProfitActivated)
 maxCurrentProfitPct := iff(isTrailingTakeProfitActivated and currentProfitPct > 0 and currentProfitPct > maxCurrentProfitPct, currentProfitPct, maxCurrentProfitPct)
-newDistance = 2 * stdev(ohlc4, 14) * 100 / ohlc4
+newDistance = calculateDynamicTakePrifitDistancePct()
 trailingTakeProfitDistance := iff(maxCurrentProfitPct > maxCurrentProfitPct[1], newDistance, trailingTakeProfitDistance)
 
 openLongCondition = iff(openPositionSize == 0 and crossover(upper[1], lower[1]) and inRange(lower[1], 20,  80) and inRange(upper, 90, 100), true, false)
 openShortCondition = iff(openPositionSize == 0 and crossover(lower[1], upper[1]) and inRange(upper[1], 20,  80) and inRange(lower, 90, 100), true, false)
-closeLongCondition = iff(openPositionSize == 1 and (isTrailingTakeProfitCloseCondition() or crossover(lower, upper)), true, false)
-closeShortCondition = iff(openPositionSize == -1 and (isTrailingTakeProfitCloseCondition() or crossover(upper, lower)), true, false)
-
-if (time > timestamp(2018,1,1,0,0)) and time < timestamp(2018,9,1,0,0)
-    strategy.close("Long", when = openPositionSize == 1 and closeLongCondition == true)
-if (time > timestamp(2018,1,1,0,0)) and time < timestamp(2018,9,1,0,0)
-    strategy.close("Short", when = openPositionSize == -1 and closeShortCondition == true)
-if (time > timestamp(2018,1,1,0,0)) and time < timestamp(2018,9,1,0,0)
-    strategy.entry("Long", strategy.long,   when = openPositionSize == 0 and openLongCondition == true)
-if (time > timestamp(2018,1,1,0,0)) and time < timestamp(2018,9,1,0,0)
-    strategy.entry("Short", strategy.short, when = openPositionSize == 0 and openShortCondition == true)
-
-//bbb = iff(isTrailingTakeProfitActivated, 1, 0)
-// ccc = iff(isTrailingTakeProfitCloseCondition(), 1, 0)
-//plotchar(0.000084+bbb*0.0000005, color=#ffff00ff, location=location.absolute, char='o')
-// plotchar(0.000084+ccc*0.0000005, color=#ff0000ff, location=location.absolute, char='o')
-//plotchar(iff(trailingTakeProfitDistance > 0, 0.000084+trailingTakeProfitDistance*close/100, 0), color=#ffffffff, location=location.absolute, char='o')
 
 if(openLongCondition == true)
     openPositionSize := 1
     avgOpenPositionValue := close
+    stopLossValue := calculateDynamicStopLossPct()
 
 if(openShortCondition == true)
     openPositionSize := -1
     avgOpenPositionValue := close
-   
+    stopLossValue := calculateDynamicStopLossPct() 
+
+strategy.entry("Long", strategy.long,   when = openLongCondition == true)
+strategy.entry("Short", strategy.short, when = openShortCondition == true)
+
+closeLongCondition = iff(openPositionSize == 1 and (isTrailingTakeProfitCloseCondition() or isStopLossCondition(true) or crossover(lower, upper)), true, false)
+closeShortCondition = iff(openPositionSize == -1 and (isTrailingTakeProfitCloseCondition() or isStopLossCondition(false) or crossover(upper, lower)), true, false)
+
+// bbb = iff(isStopLossCondition(true), 1, 0)
+// ccc = iff(isStopLossCondition(false), 1, 0)
+// ddd = stopLossValue * close /100 //(2 * stdev(close, 200) * 100 / close) * close / 100
+// eee = iff(openShortCondition, 1, 0)
+// plotchar(0.033+bbb*0.005, color=#ffff00ff, location=location.absolute, char='o') 
+// plotchar(0.0332+ccc*0.0005, color=#ffffffff, location=location.absolute, char='o')
+// plotchar(0.034 + ddd, color=#00ffffff, location=location.absolute, char='o')
+// plotchar(0.035+eee*0.0005, color=#ffff00ff, location=location.absolute, char='o')
+// plotchar(avgOpenPositionValue, color=#ff00ffff, location=location.absolute, char='o') 
+
+strategy.close("Long", when = closeLongCondition == true)
+strategy.close("Short", when = closeShortCondition == true)
+
 if(closeLongCondition == true or closeShortCondition == true)
     openPositionSize := 0
     maxCurrentProfitPct := 0.0
     isTrailingTakeProfitActivated := false
-    avgOpenPositionValue := 0.0 
     trailingTakeProfitDistance := 0.0
+    avgOpenPositionValue := 0.0 
+    stopLossValue := 0.0
+
 
