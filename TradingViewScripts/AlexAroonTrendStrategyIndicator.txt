@@ -98,6 +98,10 @@ o = iff(openLongCondition == true, 1, iff(openShortCondition == true, -1, 0))
 plotarrow(c, offset=0, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
 plotarrow(o, colorup=#29fd2fff, colordown=#fffd38ff, maxheight=150, minheight=130, transp=0)
 
+alertcondition(openLongCondition == true,  title='0201 - Aroon Trend Strategy Alert - Signal to Open Long Position', message='Aroon Trend Strategy - Signal to Open Long Position!')
+alertcondition(openShortCondition == true, title='0202 - Aroon Trend Strategy Alert - Signal to Open Short Position', message='Aroon Trend Strategy - Signal to Open Short Position!')
+alertcondition((closeLongCondition == true or closeShortCondition == true), title='0203 - Aroon Trend Strategy Alert - Signal to Close Position', message='Aroon Trend Strategy - Signal to Close Position!')
+
 if(closeLongCondition == true or closeShortCondition == true)
     openPositionSize := 0
     maxCurrentProfitPct := 0.0
@@ -108,7 +112,4 @@ if(closeLongCondition == true or closeShortCondition == true)
 
 plot(0, color=black)
 
-alertcondition(openPositionSize == 0 and openLongCondition == true,  title='0201 - Aroon Trend Strategy Alert - Signal to Open Long Position', message='Aroon Trend Strategy - Signal to Open Long Position!')
-alertcondition(openPositionSize == 0 and openShortCondition == true, title='0202 - Aroon Trend Strategy Alert - Signal to Open Short Position', message='Aroon Trend Strategy - Signal to Open Short Position!')
-alertcondition(openPositionSize != 0 and (closeLongCondition == true or closeShortCondition == true), title='0203 - Aroon Trend Strategy Alert - Signal to Close Position', message='Aroon Trend Strategy - Signal to Close Position!')
 
