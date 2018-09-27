@@ -1,5 +1,5 @@
 //@version=3
-study(title="Multiple Indicators Confluence")  
+study(title="Multiple Indicators Confluence Matrix")  
   
 //////////////////////////////////////////////////////////////
 // **************** Multiple Indicators Confluence - v0.1 *********************
@@ -49,7 +49,7 @@ kcRangema = ema(kcRange, kcLength)
 kcUpper = kcMA + kcRangema * kcMult
 kcLower = kcMA - kcRangema * kcMult
 
-ind4Value = iff(open >= kcUpper and close >= kcUpper and change(kcMA) > 0, 1, iff(open <= kcUpper and close <= kcUpper and change(kcMA) < 0, -1, 0))
+ind4Value = iff(open >= kcUpper and close >= kcUpper and change(kcMA) > 0, 1, iff(open <= kcLower and close <= kcLower and change(kcMA) < 0, -1, 0))
 //////////////////////////////////////////////////
 
 ///////////////// Indicator 5  ///////////////////
@@ -89,10 +89,10 @@ ind7Value = iff(stochRSId >= 80, -1, iff(stochRSId <= 20, 1, 0))
 //////////////////////////////////////////////////
 
 ///////////////// Indicator 8  ///////////////////
-rsiLength = input(14, minval=1)
+rsiLength = input(7, minval=1)
 rsiVal = rsi(close, rsiLength)
 
-ind8Value = iff(rsiVal >= 70, -1, iff(rsiVal <= 70, 1, 0))
+ind8Value = iff(rsiVal >= 70, -1, iff(rsiVal <= 30, 1, 0))
 //////////////////////////////////////////////////
 
 ///////////////// Indicator 9  ///////////////////
@@ -134,38 +134,38 @@ getColor(v) =>
 tn = 12
 slen = 1.0/tn
 
-n  = 1
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind1Value))
+n = 12
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind1Value), wickcolor=black, editable=false)
 
-n := 2
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind2Value))
+n := 11
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind2Value), wickcolor=black, editable=false)
+
+n := 10
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind3Value), wickcolor=black, editable=false)
+
+n := 9
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind4Value), wickcolor=black, editable=false)
+
+n := 8
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind5Value), wickcolor=black, editable=false)
+
+n := 7
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind6Value), wickcolor=black, editable=false)
+
+n := 6
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind7Value), wickcolor=black, editable=false)
+
+n := 5
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind8Value), wickcolor=black, editable=false)
+
+n := 4
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind9Value), wickcolor=black, editable=false)
 
 n := 3
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind3Value))
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind10Value), wickcolor=black, editable=false)
 
-n  := 4
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind4Value))
+n := 2
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind11Value), wickcolor=black, editable=false)
 
-n  := 5
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind5Value))
-
-n  := 6
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind6Value))
-
-n  := 7
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind7Value))
-
-n  := 8
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind8Value))
-
-n  := 9
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind9Value))
-
-n  := 10
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind10Value))
-
-n  := 11
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind11Value))
-
-n  := 12
-plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind12Value))
+n := 1
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind12Value), wickcolor=black, editable=false)
