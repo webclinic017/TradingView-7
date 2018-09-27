@@ -1,0 +1,171 @@
+//@version=3
+study(title="Multiple Indicators Confluence")  
+  
+//////////////////////////////////////////////////////////////
+// **************** Multiple Indicators Confluence - v0.1 *********************
+// - Initial Implementation
+////////////////////////////////////////////////////////////// 
+
+getChangedValue(series) =>
+    iff(change(series) < 0, -1, iff(change(series) > 0, 1, 0))
+
+///////////////// Indicators 1 & 2  ///////////////////
+// TSI 25, 13, 13
+tsiLong = input(title="TSI Long Length", type=integer, defval=25)
+tsiShort = input(title="TSI Short Length", type=integer, defval=13)
+tsiSignal = input(title="TSI Signal Length", type=integer, defval=13)
+tsiPrice = close
+
+double_smooth(src, long, short) =>
+    fist_smooth = ema(src, long)
+    ema(fist_smooth, short)
+
+pc = change(tsiPrice)
+double_smoothed_pc = double_smooth(pc, tsiLong, tsiShort)
+double_smoothed_abs_pc = double_smooth(abs(pc), tsiLong, tsiShort)
+tsiValue = 100 * (double_smoothed_pc / double_smoothed_abs_pc)
+tsiSignalValue = ema(tsiValue, tsiSignal)
+
+ind1Value = getChangedValue(tsiValue)
+ind2Value = getChangedValue(tsiSignalValue)
+//////////////////////////////////////////////////
+
+///////////////// Indicator 3  ///////////////////
+// Awesome Oscillator 
+ao = sma(hl2,5) - sma(hl2,34)
+ind3Value = getChangedValue(ao)
+//////////////////////////////////////////////////
+
+///////////////// Indicator 4  ///////////////////
+//Keltner Channels (20, 1)
+useTrueRange = input(true)
+kcLength = input(20, minval=1)
+kcMult = input(1.0)
+kcSrc = input(close, title="Source")
+
+kcMA = ema(kcSrc, kcLength)
+kcRange = useTrueRange ? tr : high - low
+kcRangema = ema(kcRange, kcLength)
+kcUpper = kcMA + kcRangema * kcMult
+kcLower = kcMA - kcRangema * kcMult
+
+ind4Value = iff(open >= kcUpper and close >= kcUpper and change(kcMA) > 0, 1, iff(open <= kcUpper and close <= kcUpper and change(kcMA) < 0, -1, 0))
+//////////////////////////////////////////////////
+
+///////////////// Indicator 5  ///////////////////
+//// Aroon 21
+aroonLength = input(21, minval=1)
+aroonUpper = 100 * (highestbars(high, aroonLength+1) + aroonLength)/aroonLength
+aroonLower = 100 * (lowestbars(low, aroonLength+1) + aroonLength)/aroonLength
+
+ind5Value = iff(aroonUpper > aroonLower, 1, iff(aroonUpper < aroonLower, -1, 0)) 
+//////////////////////////////////////////////////
+
+///////////////// Indicator 6  ///////////////
+// 8 EMA / 13 EMA / 21 EMA / 34 EMA
+ema8 = ema(close, 8)
+ema13 = ema(close, 13)
+ema21 = ema(close, 21)
+ema34 = ema(close, 34)
+
+ind6Value = iff(change(ema8) >= 0 and change(ema13) >= 0 and change(ema21) >= 0 and change(ema34) >= 0, 1, iff(change(ema8) < 0 and change(ema13) < 0 and change(ema21) < 0 and change(ema34) < 0, -1, 0))
+//////////////////////////////////////////////////
+
+///////////////// Indicator 7  ///////////////////
+//// Stochastic RSI (3,1,14,14)
+
+//@version=3 
+stochRSIsmoothK = input(3, minval=1)
+stochRSIsmoothD = input(1, minval=1)
+stochRSILengthRSI = input(14, minval=1)
+stochRSILengthStoch = input(14, minval=1)
+stochRSISrc = input(close, title="RSI Source")
+
+stochRSIRsi1 = rsi(stochRSISrc, stochRSILengthRSI)
+stochRSIk = sma(stoch(stochRSIRsi1, stochRSIRsi1, stochRSIRsi1, stochRSILengthStoch), stochRSIsmoothK)
+stochRSId = sma(stochRSIk, stochRSIsmoothD)
+
+ind7Value = iff(stochRSId >= 80, -1, iff(stochRSId <= 20, 1, 0))
+//////////////////////////////////////////////////
+
+///////////////// Indicator 8  ///////////////////
+rsiLength = input(14, minval=1)
+rsiVal = rsi(close, rsiLength)
+
+ind8Value = iff(rsiVal >= 70, -1, iff(rsiVal <= 70, 1, 0))
+//////////////////////////////////////////////////
+
+///////////////// Indicator 9  ///////////////////
+// Williams %R (28)
+wilLength = input(28, minval=1)
+wilUpper = highest(wilLength)
+wilLower = lowest(wilLength)
+wilOut = 100 * (close - wilUpper) / (wilUpper - wilLower)
+
+ind9Value = iff(wilOut >= -20, -1, iff(wilOut <= -80, 1, 0))
+//////////////////////////////////////////////////
+
+///////////////// Indicators 10-12  //////////////
+// Stochastic (7,1,1) / Stochastic (14,1,1) / Stochastic (21,1,1)
+stochPeriodK1 = input(7, title="K1", minval=1)
+stochPeriodK2 = input(14, title="K2", minval=1)
+stochPeriodK3 = input(21, title="K3", minval=1)
+stochPeriodD1 = input(1, title="D1", minval=1)
+stochPeriodD2 = input(1, title="D2", minval=1)
+stochPeriodD3 = input(1, title="D3", minval=1)
+stochSmoothK1 = input(1, title="Smooth1", minval=1)
+stochSmoothK2 = input(1, title="Smooth2", minval=1)
+stochSmoothK3 = input(1, title="Smooth3", minval=1)
+k1 = sma(stoch(close, high, low, stochPeriodK1), stochSmoothK1)
+d1 = sma(k1, stochPeriodD1)
+k2 = sma(stoch(close, high, low, stochPeriodK2), stochSmoothK2)
+d2 = sma(k2, stochPeriodD2)
+k3 = sma(stoch(close, high, low, stochPeriodK3), stochSmoothK3)
+d3 = sma(k3, stochPeriodD3)
+
+ind10Value = iff(k1 >= 80, -1, iff(k1 <= 20, 1, 0))
+ind11Value = iff(k2 >= 80, -1, iff(k2 <= 20, 1, 0))
+ind12Value = iff(k3 >= 80, -1, iff(k3 <= 20, 1, 0))
+//////////////////////////////////////////////////
+
+getColor(v) => 
+    iff(v < 0, #ff0000dd, iff(v > 0, #00ff00dd, #333333ff))
+
+tn = 12
+slen = 1.0/tn
+
+n  = 1
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind1Value))
+
+n := 2
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind2Value))
+
+n := 3
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind3Value))
+
+n  := 4
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind4Value))
+
+n  := 5
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind5Value))
+
+n  := 6
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind6Value))
+
+n  := 7
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind7Value))
+
+n  := 8
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind8Value))
+
+n  := 9
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind9Value))
+
+n  := 10
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind10Value))
+
+n  := 11
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind11Value))
+
+n  := 12
+plotcandle((n-1)*slen, n*slen, (n-1)*slen, n*slen, color=getColor(ind12Value))
