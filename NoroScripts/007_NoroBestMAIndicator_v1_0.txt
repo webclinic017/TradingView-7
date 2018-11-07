@@ -1,0 +1,28 @@
+//@version=2
+
+study(title="BestMA v1.0", shorttitle="BMA v1.0", overlay=true)
+
+//parameters
+len=input(title="Length BestMA", defval=30)
+
+//logic
+SMAOpen = sma(open, len)
+SMAClose = sma(close, len)
+trend = SMAClose > SMAOpen ? 1 : SMAClose < SMAOpen ? -1 : 0
+
+//plots
+plot(SMAOpen, color=red, title="SMA Open")
+plot(SMAClose, color=blue, title="SMA Close")
+
+//background
+col = trend == 1 ? lime : trend == -1 ? red : na
+bgcolor(col, transp=50)
+
+//trading
+position = trend == 1 and trend[1] < 1 ? 1 : trend == -1 and trend[1] > -1 ? -1 : position[1]
+
+//arrows
+plotarrow(trend == 1 and low < SMAClose ? 1 : na, title="Bottom?", colorup=black, maxheight=60, minheight=50, transp=0)
+plotarrow(trend == -1 and high > SMAClose ? -1 : na, title="Top?", colordown=black, maxheight=60, minheight=50, transp=0)
+plotarrow(position == 1 and position[1] < 1 ? 1 : na, title="Up?", colorup=red, maxheight=60, minheight=50, transp=0)
+plotarrow(position == -1 and position[1] > -1 ? -1 : na, title="Down?", colordown=red, maxheight=60, minheight=50, transp=0)

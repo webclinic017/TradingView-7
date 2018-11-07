@@ -1,0 +1,20 @@
+//@version=3
+study(title = "Noro's BinaryHacker v1.0", shorttitle = "BinHack 1.0", overlay = true)
+
+//WaveTrand
+ap = hlc3 
+esa = ema(ap, 10)
+d = ema(abs(ap - esa), 10)
+ci = (ap - esa) / (0.015 * d)
+tci = ema(ci, 21)
+
+//RSI
+up = rma(max(change(close), 0), 2)
+down = rma(-min(change(close), 0), 2)
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+
+//Signal
+top = rsi > 90 ? tci > 0 ? 1 : 0 : 0
+bot = rsi < 10 ? tci < 0 ? 1 : 0 : 0
+plotarrow(top == 1 ? -1 : na, colorup = black, colordown = black, transp = 0)
+plotarrow(bot == 1 ? 1 : na, colorup = black, colordown = black, transp = 0)

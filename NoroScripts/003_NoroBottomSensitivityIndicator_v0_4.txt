@@ -1,0 +1,85 @@
+// (c) Noro
+// 2017
+
+study("Noro's BottomSensivity v0.4", shorttitle="Bottom 0.4", overlay=true)
+
+botsens = input(defval = 3, minval = 1, maxval = 4, title = "Bottom-Sensivity")
+smalen = input(defval = 25, minval = 20, maxval = 200, title = "SMA Length")
+bars = input(defval = 3, minval = 2, maxval = 4, title = "Bars of Locomotive")
+useloc = input(true, title = "Use bottom-indicator Locomotive?")
+usecvi = input(true, title = "Use bottom-indicator CVI?")
+useucs = input(true, title = "Use bottom-indicator UCS?")
+usevix = input(true, title = "Use bottom-indicator WVF?")
+usered = input(false, title = "Only red candles?")
+usesma = input(true, title = "Use SMA Filter?")
+showsma = input(false, title = "Show SMA Filter?")
+
+//SMA Filter
+sma = sma(close, smalen)
+colsma = showsma == true ? red : na
+plot(sma, color = colsma)
+
+//VixFix method
+//Start of ChrisMoody's code
+pd = 22
+bbl = 20
+mult = 2
+lb = 50
+ph = .85
+pl = 1.01
+hp = false
+sd = false
+wvf = ((highest(close, pd)-low)/(highest(close, pd)))*100
+sDev = mult * stdev(wvf, bbl)
+midLine = sma(wvf, bbl)
+lowerBand = midLine - sDev
+upperBand = midLine + sDev
+rangeHigh = (highest(wvf, lb)) * ph
+rangeLow = (lowest(wvf, lb)) * pl
+col = wvf >= upperBand or wvf >= rangeHigh ? lime : gray
+//End of ChrisMoody's code
+
+//Locomotive method
+bar = close > open ? 1 : close < open ? -1 : 0
+locob = bar == 1 and bar[1] == -1 and bar[2] == -1 and (bar[3] == -1 or bars < 3) and (bar[4] == -1 or bars < 4) ? 1 : 0
+
+//CVI method
+//Start of LazyBear's code
+ValC=sma(hl2, 3)
+bull=-.51
+bear=.43
+vol=sma(atr(3), 3)
+cvi = (close-ValC) / (vol*sqrt(3))
+cb= cvi <= bull ? green : cvi >=bear ? red : cvi > bull ? blue : cvi < bear ? blue : na
+bull1 = cvi <= bull
+bear1 = cvi >= bear
+bull2 = bull1[1] and not bull1
+bear2 = bear1[1] and not bear1
+//End of LazyBear's code
+
+//UCS method
+//Start of UCS's code
+ll = lowest(low, 5)
+hh = highest(high, 5)
+diff = hh - ll
+rdiff = close - (hh+ll)/2
+avgrel = ema(ema(rdiff,3),3)
+avgdiff = ema(ema(diff,3),3)
+mom = ((close - close[3])/close[3])*1000
+SMI = avgdiff != 0 ? (avgrel/(avgdiff/2)*100) : 0
+SMIsignal = ema(SMI,3)
+ucslong = SMI < -35  and mom > 0 and mom[1] < 0 ? 1 : 0
+//End of UCS's code
+
+//sum
+locobot = useloc == false ? 0 : locob
+vixfixbot = usevix == false ? 0 : wvf >= upperBand or wvf >= rangeHigh ? 1 : 0
+cvibot = usecvi == false ? 0 : bull2 == true ? 1 : 0
+ucsbot = useucs == false ? 0 : ucslong == 1 ? 1 : 0
+score = vixfixbot + locobot + cvibot + ucsbot
+
+//arrows
+bottom = usered == false ? usesma == false ? score >= botsens ? 1 : 0 : high < sma and score >= botsens ? 1 : 0 : usesma == false ? score >= botsens and close < open ? 1 : 0 : high < sma and score >= botsens and close < open ? 1 : 0
+plotarrow(bottom == 1 ? 1 : na, title="Buy arrow", colorup=lime, maxheight=60, minheight=50, transp=0)
+data = bottom == 1
+plotchar(data, char=" ", text="BUY!", location=location.belowbar, color=lime, size=size.small)

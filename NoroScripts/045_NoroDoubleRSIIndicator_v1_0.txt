@@ -1,0 +1,34 @@
+//Noro
+//2017
+
+//@version=3
+study(title = "Noro's DoubleRSI v1.1", shorttitle = "2RSI 1.1")
+
+//Settings
+src = input(close, title = "Source")
+fast = input(2, defval = 2, minval = 2, maxval = 30, title = "Fast RSI period")
+slow = input(14, defval = 14, minval = 2, maxval = 30, title = "Slow RSI period")
+limit = input(20, defval = 20, minval = 1, maxval = 50, title = "RSI limit")
+uplimit = 100 - limit
+dnlimit = 0 + limit
+
+//Fast RSI
+fastup = rma(max(change(src), 0), fast)
+fastdown = rma(-min(change(src), 0), fast)
+fastrsi = fastdown == 0 ? 100 : fastup == 0 ? 0 : 100 - (100 / (1 + fastup / fastdown))
+
+//Slow RSI
+slowup = rma(max(change(src), 0), slow)
+slowdown = rma(-min(change(src), 0), slow)
+slowrsi = slowdown == 0 ? 100 : slowup == 0 ? 0 : 100 - (100 / (1 + slowup / slowdown))
+
+//Double RSI
+doublersi = (fastrsi + slowrsi) / 2
+
+plot(fastrsi, color = red, title = "Fast RSI")
+plot(slowrsi, color = lime, title = "Slow RSI")
+plot(doublersi, color = blue, linewidth = 3, title = "Double RSI")
+plot(uplimit, color = black, title = "Upper Line")
+plot(dnlimit, color = black, title = "Lower Line")
+col = doublersi > uplimit ? red : doublersi < dnlimit ? lime : na
+bgcolor(col, transp = 20)

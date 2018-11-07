@@ -1,0 +1,25 @@
+//@version=2
+strategy("Noro's Trend SMA Strategy", shorttitle = "Trend SMA str", overlay=true, default_qty_type = strategy.percent_of_equity, default_qty_value=100.0, pyramiding=0)
+
+fastlen = input(5, "fast SMA Period")
+slowlen = input(15, "slow SMA Period")
+only = input(true, "Only long?")
+
+fastsma = ema(close, fastlen)
+slowsma = ema(close, slowlen)
+
+trend = low > slowsma ? 1 : high < slowsma ? -1 : trend[1]
+
+up = trend == 1 and low < fastsma ? 1 : 0
+dn = trend == -1 and high > fastsma ? 1 : 0
+
+plot(fastsma, color = red, title = "Fast SMA")
+plot(slowsma, color = blue, title = "Slow SMA")
+
+longCondition = up == 1
+if (longCondition)
+    strategy.entry("Long", strategy.long)
+
+shortCondition = dn == 1
+if (shortCondition)
+    strategy.entry("Short", strategy.short, only == true ? 0 : na)

@@ -1,0 +1,31 @@
+//Noro
+//2017
+
+//@version=3
+study(title = "Noro's RSI Multi TimeFrame", shorttitle = "RSI MTF")
+
+//Settings
+src = input(close, title = "Source")
+fast = input(14, defval = 14, minval = 2, maxval = 100, title = "Fast RSI period")
+fasttf = input(type = resolution, defval = "60", title="Fast RSI Timeframe")
+slow = input(14, defval = 14, minval = 2, maxval = 100, title = "Slow RSI period")
+slowtf = input(type = resolution, defval = "D", title="Slow RSI Timeframe")
+limit = input(30, defval = 30, minval = 1, maxval = 50, title = "RSI limit")
+botbg = input(true, defval = true, title = "Show bottom background")
+topbg = input(false, defval = false, title = "Show top background")
+uplimit = 100 - limit
+dnlimit = 0 + limit
+
+//RSI
+fastrsi = security(tickerid, fasttf, rma(-min(change(src), 0), slow) == 0 ? 100 : rma(max(change(src), 0), slow) == 0 ? 0 : 100 - (100 / (1 + rma(max(change(src), 0), slow) / rma(-min(change(src), 0), slow))))
+slowrsi = security(tickerid, slowtf, rma(-min(change(src), 0), slow) == 0 ? 100 : rma(max(change(src), 0), slow) == 0 ? 0 : 100 - (100 / (1 + rma(max(change(src), 0), slow) / rma(-min(change(src), 0), slow))))
+
+//Lines
+plot(fastrsi, color = red, linewidth = 3, title = "Fast RSI")
+plot(slowrsi, color = blue, linewidth = 3, title = "Slow RSI")
+plot(uplimit, color = black, linewidth = 1, title = "Upper Line")
+plot(dnlimit, color = black, linewidth = 1, title = "Lower Line")
+
+//Background
+col = fastrsi > uplimit and slowrsi > uplimit and topbg ? red : fastrsi < dnlimit and slowrsi < dnlimit and botbg ? lime : na
+bgcolor(col, transp = 20)

@@ -1,0 +1,75 @@
+//Noro
+//2018
+
+//@version=2
+strategy(title = "Noro's Anti RSI Strategy v1.0", shorttitle = "Anti RSI str 1.0", overlay = true, default_qty_type = strategy.percent_of_equity, default_qty_value = 100, pyramiding = 0)
+
+//Settings
+needlong = input(true, defval = true, title = "Long")
+needshort = input(true, defval = true, title = "Short")
+usemar = input(false, defval = false, title = "Use Martingale")
+capital = input(100, defval = 100, minval = 1, maxval = 10000, title = "Capital, %")
+rsiperiod1 = input(14, defval = 14, minval = 2, maxval = 50, title = "RSI Period")
+rsilimit1 = input(25, defval = 25, minval = 1, maxval = 100, title = "RSI limit")
+showarr = input(false, defval = false, title = "Show Arrows")
+fromyear = input(1900, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
+toyear = input(2100, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
+frommonth = input(01, defval = 01, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(12, defval = 12, minval = 01, maxval = 12, title = "To Month")
+fromday = input(01, defval = 01, minval = 01, maxval = 31, title = "From day")
+today = input(31, defval = 31, minval = 01, maxval = 31, title = "To day")
+
+//RSI
+uprsi1 = rma(max(change(close), 0), rsiperiod1)
+dnrsi1 = rma(-min(change(close), 0), rsiperiod1)
+rsi = dnrsi1 == 0 ? 100 : uprsi1 == 0 ? 0 : 100 - (100 / (1 + uprsi1 / dnrsi1))
+uplimit = 100 - rsilimit1
+dnlimit = rsilimit1
+
+//Body
+body = abs(close - open)
+abody = sma(body, 10)
+
+//Signals
+bar = close > open ? 1 : close < open ? -1 : 0
+overbought = rsi > uplimit
+oversold = rsi < dnlimit
+
+up1 = bar == -1 and strategy.position_size == 0 and overbought[1] and overbought == false
+dn1 = bar == 1 and strategy.position_size == 0 and oversold[1] and oversold == false
+up2 = bar == -1 and strategy.position_size > 0 and overbought == false
+dn2 = bar == 1 and strategy.position_size < 0 and oversold == false
+
+norma = overbought == false and oversold == false
+exit = (((strategy.position_size > 0 and bar == 1) or (strategy.position_size < 0 and bar == -1)) and body > abody / 2)
+
+//Arrows
+col = exit ? black : up1 or dn1 or up2 or dn2 ? blue : na
+needup = up1 or up2
+needdn = dn1 or dn2
+needexitup = exit and strategy.position_size < 0
+needexitdn = exit and strategy.position_size > 0
+plotarrow(showarr and needup ? 1 : na, colorup = blue, colordown = blue, transp = 0)
+plotarrow(showarr and needdn ? -1 : na, colorup = blue, colordown = blue, transp = 0)
+plotarrow(showarr and needexitup ? 1 : na, colorup = black, colordown = black, transp = 0)
+plotarrow(showarr and needexitdn ? -1 : na, colorup = black, colordown = black, transp = 0)
+
+//Trading
+profit = exit ? ((strategy.position_size > 0 and close > strategy.position_avg_price) or (strategy.position_size < 0 and close < strategy.position_avg_price)) ? 1 : -1 : profit[1]
+mult = usemar ? exit ? profit == -1 ? mult[1] * 2 : 1 : mult[1] : 1
+lot = strategy.position_size == 0 ? strategy.equity / close * capital / 100 * mult : lot[1]
+
+if up1 or up2
+    if strategy.position_size < 0
+        strategy.close_all()
+        
+    strategy.entry("Long", strategy.long, needlong == false ? 0 : lot, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+
+if dn1 or dn2
+    if strategy.position_size > 0
+        strategy.close_all()
+        
+    strategy.entry("Short", strategy.short, needshort == false ? 0 : lot, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+    
+if time > timestamp(toyear, tomonth, today, 23, 59) or exit
+    strategy.close_all()

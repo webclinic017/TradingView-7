@@ -1,0 +1,12 @@
+// (c) Noro
+// 2017
+
+study(title="RedBar v1.0", shorttitle="RedBar v1.0", overlay=true)
+
+//logic
+bar = high > high[1] ? 1 : -1
+redbar = low < low[1] and close < open and bar[1] == 1 and bar[2] == 1 and bar[3] == 1 ? 1 : 0
+color = redbar == 1 ? red: na
+
+//background
+bgcolor(color, transp=50)

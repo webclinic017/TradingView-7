@@ -1,0 +1,27 @@
+//@version=3
+study("Noro's VangaCloud 1.1a", shorttitle = "VangaCloud 1.1a", overlay = true)
+VL1 = input(defval = 2, title = "Fast Vanga length", minval = 1, maxval = 200)
+VL2 = input(defval = 30, title = "Slow Vanga length", minval = 1, maxval = 200)
+usearr = input(defval = true, title = "Need arrow")
+
+//Vanga 1
+lasthigh1 = highest(close, VL1)
+lastlow1 = lowest(close, VL1)
+vanga1 = (lasthigh1 + lastlow1) / 2
+
+//Vanga 2
+lasthigh2 = highest(close, VL2)
+lastlow2 = lowest(close, VL2)
+vanga2 = (lasthigh2 + lastlow2) / 2
+
+//plots
+v1 = plot(vanga1, color = na)
+v2 = plot(vanga2, color = na)
+col = vanga1 > vanga2 ? lime : red
+fill(v1, v2, color = col, transp = 50)
+
+//arrows
+top = high > vanga2 and vanga1 < vanga2 ? 1 : 0
+bottom = low < vanga2 and vanga1 > vanga2 ? 1 : 0
+plotarrow(top == 1 and usearr == true ? -1 : na)
+plotarrow(bottom == 1 and usearr == true ? 1 : na)

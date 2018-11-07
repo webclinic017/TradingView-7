@@ -1,0 +1,57 @@
+//Noro
+//2017
+
+study(title = "Noro's OverCloud v1.1", shorttitle = "OverCloud 1.1", overlay = true)
+
+//Settings
+cloud = input(25, defval = 25, minval = 5, maxval = 50, title = "cloud, % of ATR")
+src = close
+Factor = input(title = "Super Trend", defval = 3, minval = 1,maxval = 100)
+ATR = input(title="ATR", defval=7, minval=1,maxval = 100)
+centr = input(true, defval = true, title = "need center of ATR?")
+border = input(false, defval = false, title = "need border?")
+
+//Super Trend ATR 1
+Up=hl2-(Factor*atr(ATR))
+Dn=hl2+(Factor*atr(ATR))
+TUp=close[1]>TUp[1]? max(Up,TUp[1]) : Up
+TDown=close[1]<TDown[1]? min(Dn,TDown[1]) : Dn
+Trend = close > TDown[1] ? 1: close< TUp[1]? -1: nz(Trend[1],1)
+Tsl1 = Trend==1? TUp: TDown
+Tsl2 = Trend==1? TDown: TUp
+
+//upcloud = (Tsl1 + Tsl1 + Tsl1 + Tsl2) / 4
+limit = (Tsl1 - Tsl2) / 100 * cloud
+upcloud = Tsl1 - limit
+dncloud = Tsl2 + limit
+
+//Fast RSI
+fastup = rma(max(change(src), 0), 2)
+fastdown = rma(-min(change(src), 0), 2)
+fastrsi = fastdown == 0 ? 100 : fastup == 0 ? 0 : 100 - (100 / (1 + fastup / fastdown))
+
+//Slow RSI
+slowup = rma(max(change(src), 0), 14)
+slowdown = rma(-min(change(src), 0), 14)
+slowrsi = slowdown == 0 ? 100 : slowup == 0 ? 0 : 100 - (100 / (1 + slowup / slowdown))
+
+//Double RSI
+drsi = (fastrsi + slowrsi) / 2
+
+//Arrows
+//uparrow = drsi < 50 and Trend == 1 and low < min(upcloud, dncloud) ? 1 : 0
+//dnarrow = drsi > 50 and Trend == -1 and high > max(upcloud, dncloud) ? 1 : 0
+//plotarrow(uparrow == 1 ? 1 : na, colorup = blue, colordown = blue, transp = 0)
+//plotarrow(dnarrow == 1 ? -1 : na, colorup = blue, colordown = blue, transp = 0)
+
+//Cloud
+linecolor = Trend == 1 ? green : red
+centercolor = centr == true ? blue : na
+cloudcolor = Trend == 1 ? green : red
+P1 = plot(Tsl1, color = border == false ? na : linecolor , style = line , linewidth = 1,title = "SuperTrend ATR-1")
+P2 = plot(Tsl2, color = border == false ? na : linecolor , style = line , linewidth = 1,title = "SuperTrend ATR-2")
+P3 = plot((Tsl1 + Tsl2) / 2, color = centercolor , style = line , linewidth = 1,title = "SuperTrend Center")
+P4 = plot(upcloud, color = border == false ? na : linecolor , style = line , linewidth = 1,title = "SuperTrend Center+1")
+P5 = plot(dncloud, color = border == false ? na : linecolor , style = line , linewidth = 1,title = "SuperTrend Center-1")
+fill(P1, P4, color = linecolor == red ? red : lime, transp = 50)
+fill(P2, P5, color = linecolor == red ? red : lime, transp = 50)

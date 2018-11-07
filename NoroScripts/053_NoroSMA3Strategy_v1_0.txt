@@ -1,0 +1,35 @@
+//Noro
+//2018
+
+//@version=2
+strategy(title = "Noro's SMA-32 Strategy v1.0", shorttitle = "SMA-32 str 1.0", overlay = true, default_qty_type = strategy.percent_of_equity, default_qty_value = 100, pyramiding = 5)
+
+//Settings
+p = input(20, "bars")
+d = input(30, "percent")
+showlines = input(true, defval = true, title = "Show Lines?")
+fromyear = input(1900, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
+toyear = input(2100, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
+frommonth = input(01, defval = 01, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(12, defval = 12, minval = 01, maxval = 12, title = "To Month")
+fromday = input(01, defval = 01, minval = 01, maxval = 31, title = "From day")
+today = input(31, defval = 31, minval = 01, maxval = 31, title = "To day")
+
+//SMAs
+sma = sma(close, p)
+upex = sma * ((100 + d) / 100)
+dnex = sma * ((100 - d) / 100)
+exit = close > sma
+
+//Lines
+col = showlines ? blue : na
+plot(upex, linewidth = 3, color = col, transp = 0)
+plot(sma, linewidth = 3, color = col, transp = 0)
+plot(dnex, linewidth = 3, color = col, transp = 0)
+
+//Trading
+if (not na(close[p]))
+    strategy.entry("Long", strategy.long, na, limit = dnex, when = (time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+
+if time > timestamp(toyear, tomonth, today, 23, 59) or exit
+    strategy.close_all()

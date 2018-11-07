@@ -1,0 +1,36 @@
+//Noro
+//2017
+
+study(title = "Noro's Locomotive v1.3 with RSI", shorttitle = "Loco 1.3", overlay = true)
+
+//Settings
+sens = input(15, defval = 15, minval = 1, maxval = 30, title = "RSI Sensivity")
+rsibar = input(2, defval = 2, minval = 1, maxval = 5, title = "Minimum RSI Bars")
+locbar = input(2, defval = 2, minval = 1, maxval = 5, title = "Minimum Locomotive Bars")
+needbg = input(defval = true, title = "Need RSI Background?")
+upsens = 100 - sens
+dnsens = sens
+
+//Locomotive
+bar = close > open ? 1 : close < open ? -1 : 0
+toploc = bar == -1 and bar[1] == 1 and (bar[2] == 1 or locbar < 2) and (bar[3] == 1 or locbar < 3) and (bar[4] == 1 or locbar < 4) and (bar[5] == 1 or locbar < 5)? 1 : 0
+botloc = bar == 1 and bar[1] == -1 and (bar[2] == -1 or locbar < 2) and (bar[3] == -1 or locbar < 3) and (bar[4] == -1 or locbar < 4) and (bar[5] == -1 or locbar < 5) ? 1 : 0
+
+//RSI
+up = rma(max(change(close), 0), 2)
+down = rma(-min(change(close), 0), 2)
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+rsitop = rsi[1] > upsens and (rsi[2] > upsens or rsibar < 2) and (rsi[3] > upsens or rsibar < 3) and (rsi[4] > upsens or rsibar < 4) and (rsi[5] > upsens or rsibar < 5)? 1 : 0
+rsibot = rsi[1] < dnsens and (rsi[2] < dnsens or rsibar < 2) and (rsi[3] < dnsens or rsibar < 3) and (rsi[4] < dnsens or rsibar < 4) and (rsi[5] < dnsens or rsibar < 5)? 1 : 0
+
+//Strategy
+top = toploc == 1 and rsitop == 1 ? 1 : 0
+bot = botloc == 1 and rsibot == 1 ? 1 : 0
+
+//Background
+col = needbg == false ? na : rsi < dnsens ? red : rsi > upsens ? lime : na
+bgcolor(col, transp = 70)
+
+//Arrows
+plotarrow(top == 1 ? -1 : na, colorup = black, colordown = black, title = "Top-arrow")
+plotarrow(bot == 1 ? 1 : na, colorup = black, colordown = black, title = "Bottom-arrow")

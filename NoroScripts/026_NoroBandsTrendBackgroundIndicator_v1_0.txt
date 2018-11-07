@@ -1,0 +1,43 @@
+//Noro
+//2018
+
+//@version=2
+study("Noro's Bands Trend Background", shorttitle = "Trend Background", overlay = true)
+
+//Settings
+trb = input(1, defval = 1, minval = 1, maxval = 5, title = "Trend bars")
+len = input(20, defval = 20, minval = 2, maxval = 200, title = "Period")
+needbb = input(false, defval = false, title = "Show Bands")
+src = close
+
+//PriceChannel 1
+lasthigh = highest(src, len)
+lastlow = lowest(src, len)
+center = (lasthigh + lastlow) / 2
+
+//Distance
+dist = abs(src - center)
+distsma = sma(dist, len)
+hd = center + distsma
+ld = center - distsma
+hd2 = center + distsma * 2
+ld2 = center - distsma * 2
+
+//Trend
+chd = close > hd
+cld = close < ld
+uptrend = trb == 1 and chd ? 1 : trb == 2 and chd and chd[1] ? 1 : trb == 3 and chd and chd[1] and chd[2] ? 1 : trb == 4 and chd and chd[1] and chd[2] and chd[3] ? 1 : trb == 5 and chd and chd[1] and chd[2] and chd[3] and chd[4] ? 1 : 0
+dntrend = trb == 1 and cld ? 1 : trb == 2 and cld and cld[1] ? 1 : trb == 3 and cld and cld[1] and cld[2] ? 1 : trb == 4 and cld and cld[1] and cld[2] and cld[3] ? 1 : trb == 5 and cld and cld[1] and cld[2] and cld[3] and cld[4] ? 1 : 0
+trend = dntrend == 1 and high < center ? -1 : uptrend == 1 and low > center ? 1 : trend[1]
+
+//Lines
+colo = needbb == false ? na : black
+plot(hd2, color = colo, linewidth = 1, transp = 0, title = "High band 2")
+plot(hd, color = colo, linewidth = 1, transp = 0, title = "High band 1")
+plot(center, color = colo, linewidth = 1, transp = 0, title = "center")
+plot(ld, color = colo, linewidth = 1, transp = 0, title = "Low band 1")
+plot(ld2, color = colo, linewidth = 1, transp = 0, title = "Low band 2")
+
+//Background
+col = trend == 1 ? lime : red
+bgcolor(col, transp = 80)

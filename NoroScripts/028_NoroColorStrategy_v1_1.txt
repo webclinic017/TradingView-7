@@ -1,0 +1,24 @@
+//Noro
+//2018
+
+//@version=2
+strategy("Noro's Color Strategy v1.1", shorttitle = "Color str 1.1", overlay = true, default_qty_type = strategy.percent_of_equity, default_qty_value = 100.0, pyramiding = 0)
+
+bar = close > open ? 1 : close < open ? - 1 : 0
+
+//Trend
+trend = bar == 1 and bar[1] == 1 and bar[2] == 1 and bar[3] == 1 ? 1 : bar == -1 and bar[1] == -1 and bar[2] == -1 and bar[3] == -1 ? -1 : trend[1]
+col = trend == 1 ? lime : red
+bgcolor(col, transp = 80)
+
+//Signals
+min = min(close, open)
+max = max(close, open)
+up = trend == 1 and min < min[1] and bar == -1
+dn = trend == -1 and max > max[1] and bar == 1
+
+if up
+    strategy.entry("Long", strategy.long)
+
+if dn
+    strategy.entry("Short", strategy.short)

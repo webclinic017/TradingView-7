@@ -1,0 +1,30 @@
+//Noro
+//2017
+
+study(title = "Noro's OverCloud v1.0", shorttitle = "OverCloud 1.0", overlay = true)
+
+//Mode
+Factor=input(title="Super Trend", defval=3, minval=1,maxval = 100)
+ATR=input(title="ATR", defval=7, minval=1,maxval = 100)
+
+//Super Trend ATR 1
+Up=hl2-(Factor*atr(ATR))
+Dn=hl2+(Factor*atr(ATR))
+
+TUp=close[1]>TUp[1]? max(Up,TUp[1]) : Up
+TDown=close[1]<TDown[1]? min(Dn,TDown[1]) : Dn
+
+Trend = close > TDown[1] ? 1: close< TUp[1]? -1: nz(Trend[1],1)
+
+Tsl1 = Trend==1? TUp: TDown
+Tsl2 = Trend==1? TDown: TUp
+
+linecolor = Trend == 1 ? green : red
+
+P1 = plot(Tsl1, color = linecolor , style = line , linewidth = 1,title = "SuperTrend ATR-1")
+P2 = plot(Tsl2, color = linecolor , style = line , linewidth = 1,title = "SuperTrend ATR-2")
+//P3 = plot((Tsl1 + Tsl2) / 2, color = blue , style = line , linewidth = 1,title = "SuperTrend Center")
+P4 = plot((Tsl1 + Tsl1 + Tsl1 + Tsl2) / 4, color = linecolor , style = line , linewidth = 1,title = "SuperTrend Center+1")
+P5 = plot((Tsl1 + Tsl2 + Tsl2 + Tsl2) / 4, color = linecolor , style = line , linewidth = 1,title = "SuperTrend Center-1")
+fill(P1, P4, color = linecolor == red ? red : lime)
+fill(P2, P5, color = linecolor == red ? red : lime)

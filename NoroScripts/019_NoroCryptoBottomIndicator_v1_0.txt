@@ -1,0 +1,18 @@
+//@version=2
+study("CryptoBottom v1.0 (for D1!!!)", shorttitle = "CryptoBottom 1.0", overlay = true)
+
+//Fast RSI
+src = close
+fastup = rma(max(change(src), 0), 2)
+fastdown = rma(-min(change(src), 0), 2)
+fastrsi = fastdown == 0 ? 100 : fastup == 0 ? 0 : 100 - (100 / (1 + fastup / fastdown))
+
+mac = sma(close, 10)
+len = abs(close - mac)
+sma = sma(len, 100)
+max = max(open, close)
+min = min(open, close)
+up = close < open and len > sma * 3 and min < min[1] and fastrsi < 10 ? 1 : 0
+dn = close > open and len > sma * 3 and max > max[1] and fastrsi > 90 ? 1 : 0
+plotarrow(up == 1 ? 1 : na, colorup = blue, colordown = blue)
+//plotarrow(dn == 1 ? -1 : na, colorup = blue, colordown = blue)

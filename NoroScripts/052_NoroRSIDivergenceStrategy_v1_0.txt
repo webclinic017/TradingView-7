@@ -1,0 +1,20 @@
+study(title = "RSI Divergence v1.0", overlay = false)
+src = input(close)
+fast_length = input(8)
+slow_length = input(55)
+smooth = input(10)
+overbought = input(70)
+oversold = input(30)
+
+fast_rsi = rsi(src, fast_length)
+slow_rsi = rsi(src, slow_length)
+
+smooth_fast_rsi = sma(fast_rsi, smooth)
+smooth_slow_rsi = sma(slow_rsi, smooth)
+col = smooth_fast_rsi >= smooth_slow_rsi ? lime : red
+plotcandle(smooth_slow_rsi, max(fast_rsi, slow_rsi), min(fast_rsi, slow_rsi), smooth_fast_rsi, title='rsi bars', color = col)
+
+bgcolor(col, transp = 50)
+
+hline(overbought, color=black)
+hline(oversold, color=black)

@@ -1,0 +1,20 @@
+study(title="ElectroVanga v2.0", shorttitle="ElectroVanga v2.0", overlay=true)
+len = input(30, minval=1, title="Length")
+
+lasthigh = highest(close, len)
+lastlow = lowest(close, len)
+center = (lasthigh +lastlow) / 2
+
+plot(lasthigh, color=red, linewidth=2, title="High trend")
+plot(center, color=blue, linewidth=2, title="Center trend")
+plot(lastlow, color=lime, linewidth=2, title="low trend")
+
+trend = low > center ? 1 : high < center ? -1 : trend[1]
+
+plotarrow(trend == 1 and close < open and close[1] > open[1] and close < close[1] and (high >= lasthigh or high[1] >= lasthigh) and low < low[1] ? -1 : na, title="Top?", colordown=red, maxheight=60, minheight=50, transp=0)
+plotarrow(trend == -1 and close > open and close[1] < open[1] and close > close[1] and (low <= lastlow or low[1] <= lastlow) ? 1 : na, title="Bottom?", colorup=lime, maxheight=60, minheight=50, transp=0)
+
+plotarrow(trend == -1 and close < open and close[1] > open[1] and close < close[1] and (high >= center or high[1] >= center) ? -1 : na, title="Center Down?", colordown=blue, maxheight=60, minheight=50, transp=0)
+plotarrow(trend == 1 and close > open and close[1] < open[1] and close > close[1] and (low <= center or low[1] <= center) ? 1 : na, title="Center Up?", colorup=blue, maxheight=60, minheight=50, transp=0)
+
+bgcolor(trend == 1 and low > center ? lime : trend == -1 and high < center ? red : na, transp=70)

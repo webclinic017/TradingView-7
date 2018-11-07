@@ -1,0 +1,14 @@
+//@version=3
+study("Noro Percent Indicator", overlay = true)
+
+limit = input(1.0, defval = 1.0, title = "Percent")
+
+max = max(open, close)
+min = min(open, close)
+per = ((max / min) - 1) * 100
+
+up = close > open and per > limit ? 1 : 0
+dn = close < open and per > limit ? 1 : 0
+
+plotarrow(up == 1 ? 1 : na, transp = 0)
+plotarrow(dn == 1 ? -1 : na, transp = 0)

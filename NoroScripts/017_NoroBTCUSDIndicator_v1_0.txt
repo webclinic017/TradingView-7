@@ -1,0 +1,36 @@
+//Noro
+//2017
+
+//@version=3
+
+study(title = "Noro's BTCUSD v1.0", shorttitle = "BTCUSD", overlay = true)
+
+usebitfinex = input(true, defval = true, title = "BTC/USD BitFinex")
+usebitstamp = input(true, defval = true, title = "BTC/USD BitStamp")
+usecoinbase = input(true, defval = true, title = "BTC/USD CoinBase")
+usehuobi = input(false, defval = false, title = "BTC/USD Huobi")
+useitbit = input(true, defval = true, title = "BTC/USD ItBit")
+useokcoin = input(false, defval = false, title = "BTC/USD OKcoin")
+usepoloniex = input(true, defval = true, title = "BTC/USD Poloniex")
+
+bitfinex = usebitfinex == false ? 0 : security("BITFINEX:BTCUSD", period, close)
+bitstamp = usebitstamp == false ? 0 : security("BITSTAMP:BTCUSD", period, close)
+coinbase = usecoinbase == false ? 0 : security("COINBASE:BTCUSD", period, close)
+huobi = usehuobi == false ? 0 : security("HUOBI:BTCUSD", period, close)
+itbit = useitbit == false ? 0 : security("ITBIT:BTCUSD", period, close)
+okcoin = useokcoin == false ? 0 : security("OKCOIN:BTCUSD", period, close)
+poloniex = usepoloniex == false ? 0 : security("POLONIEX:BTCUSDT", period, close)
+
+s1 = usebitfinex == true ? 1 : 0
+s2 = usebitstamp == true ? 1 : 0
+s3 = usecoinbase == true ? 1 : 0
+s4 = usehuobi == true ? 1 : 0
+s5 = useitbit == true ? 1 : 0
+s6 = useokcoin == true ? 1 : 0
+s7 = usepoloniex == true ? 1 : 0
+
+sum = s1 + s2 + s3 + s4 + s5 + s6 + s7
+
+av = (bitfinex + bitstamp + coinbase + huobi + itbit + okcoin + poloniex) / sum
+
+plot(av)

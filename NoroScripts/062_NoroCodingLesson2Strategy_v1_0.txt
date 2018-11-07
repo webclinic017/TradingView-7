@@ -1,0 +1,12 @@
+//@version=3
+strategy("Coding lesson 2", overlay = true, default_qty_type = strategy.percent_of_equity, default_qty_value = 100, pyramiding = 0)
+sma1 = security(tickerid, 'W', sma(close, 7))
+sma2 = sma(close, 7)
+plot(sma1)
+plot(sma2)
+up = close > sma1 and close > sma2
+sell = close < sma1 or close < sma2
+if up 
+    strategy.entry("Long", strategy.long)
+if sell
+    strategy.close_all()

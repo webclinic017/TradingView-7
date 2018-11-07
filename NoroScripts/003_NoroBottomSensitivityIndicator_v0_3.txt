@@ -1,0 +1,62 @@
+// (c) Noro
+// with ChrisMoody's code "CM_Williams_Vix_Fix" from:
+// https://ru.tradingview.com/script/og7JPrRA-CM-Williams-Vix-Fix-Finds-Market-Bottoms/
+// VixFix is Williams's idea
+// my idea = locomotive-pattern + VixFix = BestBuy-indicator
+
+study("Noro's BottomSensivity v0.3", shorttitle="Bottom 0.3", overlay=true)
+
+botsens = input(defval = 3, minval = 1, maxval = 3, title = "Bottom-Sensivity")
+usevix = input(true, title = "Use bottom-indicator VixFix?")
+useloc = input(true, title = "Use bottom-indicator Locomotive?")
+usecvi = input(true, title = "Use bottom-indicator CVI?")
+bars = input(defval = 3, minval = 2, maxval = 4, title = "Bars of Locomotive")
+
+//VixFix method
+//Start of ChrisMoody's code
+pd = 22
+bbl = 20
+mult = 2
+lb = 50
+ph = .85
+pl = 1.01
+hp = false
+sd = false
+wvf = ((highest(close, pd)-low)/(highest(close, pd)))*100
+sDev = mult * stdev(wvf, bbl)
+midLine = sma(wvf, bbl)
+lowerBand = midLine - sDev
+upperBand = midLine + sDev
+rangeHigh = (highest(wvf, lb)) * ph
+rangeLow = (lowest(wvf, lb)) * pl
+col = wvf >= upperBand or wvf >= rangeHigh ? lime : gray
+//End of ChrisMoody's code
+
+vixfixbot = usevix == false ? 0 : wvf >= upperBand or wvf >= rangeHigh ? 1 : 0
+
+//Locomotive method
+bar = close > open ? 1 : close < open ? -1 : 0
+locobot = useloc == false ? 0 : bar == 1 and bar[1] == -1 and bar[2] == -1 and (bar[3] == -1 or bars < 3) and (bar[4] == -1 or bars < 4) ? 1 : 0
+
+//CVI method
+//Sttart of LazyBear's code
+ValC=sma(hl2, 3)
+bull=-.51
+bear=.43
+vol=sma(atr(3), 3)
+cvi = (close-ValC) / (vol*sqrt(3))
+cb= cvi <= bull ? green : cvi >=bear ? red : cvi > bull ? blue : cvi < bear ? blue : na
+bull1 = cvi <= bull
+bear1 = cvi >= bear
+bull2 = bull1[1] and not bull1
+bear2 = bear1[1] and not bear1
+//End of LazyBear's code
+
+cvibot = usecvi == false ? 0 : bull2 == true ? 1 : 0
+
+//arrows
+score = vixfixbot + locobot + cvibot
+bottom = score >= botsens ? 1 : 0
+plotarrow(bottom == 1 ? 1 : na, title="Buy arrow", colorup=lime, maxheight=60, minheight=50, transp=0)
+data = bottom == 1
+plotchar(data, char=" ", text="BUY!", location=location.belowbar, color=lime, size=size.small)

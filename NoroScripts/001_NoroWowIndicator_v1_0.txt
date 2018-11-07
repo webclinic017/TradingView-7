@@ -1,0 +1,22 @@
+study(title="WOW indicator v1.0", shorttitle="WOW v1.0", overlay=true)
+len = input(30, minval=1, title="Length")
+
+lasthigh = highest(close, len)
+lastlow = lowest(close, len)
+center = (lasthigh +lastlow) / 2
+
+body = (open + close) / 2
+
+trend1 = body > center ? 1 : body < center ? -1 : trend1[1]
+trend2 = center > center[1] ? 1 : center < center[1] ? -1 : trend2[1]
+signal = trend1 == 1 and trend2 == 1 ? 1 : trend1 == -1 and trend2 == -1 ? -1 : signal[1]
+ 
+//plots
+centercolor = trend2 == 1 ? lime : trend2 == -1 ? red : na
+plot(lasthigh, color=blue, linewidth=3, title="High trend")
+plot(center, color=centercolor, linewidth=3, title="Center trend")
+plot(lastlow, color=blue, linewidth=3, title="low trend")
+
+//background
+arrow = signal == signal[1] ? 0 : 1
+bgcolor(arrow == 1 ? black : signal == 1 ? lime : signal == -1 ? red : na, transp=70)

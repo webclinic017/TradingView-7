@@ -1,0 +1,27 @@
+//Noro
+//2017
+
+study(title="Noro's WaveTrend Arrows v1.0", shorttitle="WT Arrows 1.0", overlay = true)
+n1 = input(10, "Channel Length")
+n2 = input(21, "Average Length")
+obLevel1 = input(60, "Over Bought Level 1")
+obLevel2 = input(53, "Over Bought Level 2")
+osLevel1 = input(-60, "Over Sold Level 1")
+osLevel2 = input(-53, "Over Sold Level 2")
+src = input(hlc3, defval = hlc3, title = "Source")
+ 
+ap = src
+esa = ema(ap, n1)
+d = ema(abs(ap - esa), n1)
+ci = (ap - esa) / (0.015 * d)
+tci = ema(ci, n2)
+ 
+wt1 = tci
+wt2 = sma(wt1,4)
+
+up = wt1 > wt1[1] and wt1[1] < wt1[2] and wt1 < -30 ? 1 : 0
+dn = wt1 < wt1[1] and wt1[1] > wt1[2] and wt1 > 30 ? 1 : 0
+
+plotarrow(up == 1 ? 1 : na, colorup = blue, colordown = blue, transp = 0)
+plotarrow(dn == 1 ? -1 : na, colorup = blue, colordown = blue, transp = 0)
+

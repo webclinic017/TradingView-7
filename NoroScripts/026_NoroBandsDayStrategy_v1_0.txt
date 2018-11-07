@@ -1,0 +1,45 @@
+
+//@version=2
+strategy("Noro's Bands Day Strategy v1.0", shorttitle = "NoroBands Day str 1.0", overlay=true, default_qty_type = strategy.percent_of_equity, default_qty_value=100.0, pyramiding=0)
+
+//Settings
+needlong = input(true, defval = true, title = "Long")
+needshort = input(false, defval = false, title = "Short")
+len = input(20, defval = 20, minval = 2, maxval = 200, title = "Period")
+needbb = input(true, defval = true, title = "Show Bands")
+needbg = input(true, defval = true, title = "Show Background")
+src = close
+
+//PriceChannel 1
+lasthigh = highest(src, len)
+lastlow = lowest(src, len)
+center = (lasthigh + lastlow) / 2
+
+//Distance
+dist = abs(src - center)
+distsma = sma(dist, len)
+hd = center + distsma
+ld = center - distsma
+
+//Trend
+trend = close < ld and high < center ? -1 : close > hd and low > center ? 1 : trend[1]
+
+//Lines
+colo = needbb == false ? na : black
+plot(hd, color = colo, linewidth = 1, transp = 0, title = "High band")
+plot(center, color = colo, linewidth = 1, transp = 0, title = "center")
+plot(ld, color = colo, linewidth = 1, transp = 0, title = "Low band")
+
+//Background
+col = needbg == false ? na : trend == 1 ? lime : red
+bgcolor(col, transp = 80)
+
+//Signals
+up = trend == 1 and low < hd and close < open ? 1 : 0
+dn = trend == -1 and high > ld and close > open ? 1 : 0
+
+if up == 1
+    strategy.entry("Long", strategy.long, needlong == false ? 0 : na)
+
+if dn == 1
+    strategy.entry("Short", strategy.short, needshort == false ? 0 : na)

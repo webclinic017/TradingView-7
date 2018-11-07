@@ -1,0 +1,11 @@
+//@version=2
+study(title = "Noro's Razvorot v1.0", shorttitle = "Razvorot", overlay = false)
+
+mac = sma(close, 10)
+len = abs(close - mac)
+
+sma = sma(len, 100) * 2
+ind = len - sma > 0 ? len - sma : 0
+sms = sma(sma, 20)
+plot(len, color = blue, linewidth = 2)
+plot(sma, color = red, linewidth = 2)

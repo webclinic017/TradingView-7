@@ -1,0 +1,29 @@
+//Noro
+//2017
+
+//@version=2
+
+study(title = "Noro's HighLowLines v1.1", shorttitle = "HighLowLines 1.1", overlay = true)
+
+bars = input(100, defval = 100, minval = 5, maxval = 100000, title = "Bars")
+needline = input(true, defval = true, title = "Need H&L Lines?")
+needcent = input(true, defval = true, title = "Need center-Line?")
+needarr = input(true, defval = true, title = "Need Arrows?")
+
+//top = high > top[1] ? high : top[1]
+top = highest(high, bars)
+bot = lowest(low, bars)
+center = (top + bot) / 2
+
+//plot
+colhl = needline == true ? lime : na
+colcent = needcent == true ? blue : na
+highline = plot(bot, color = colhl, linewidth = 3, transp = 0)
+centerline = plot(center, color = colcent, linewidth = 3, transp = 0)
+lowline = plot(top, color = colhl, linewidth = 3, transp = 0)
+
+//arrows
+arrup = high > top[1] and needarr == true ? 1 : 0
+arrdn = low < bot[1] and needarr == true ? 1 : 0
+plotarrow(arrup == 1 ? -1 : na, colorup = blue, colordown = blue, transp = 0)
+plotarrow(arrdn == 1 ? 1 : na, colorup = blue, colordown = blue, transp = 0)

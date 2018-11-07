@@ -1,0 +1,13 @@
+// (c) Noro
+// 2017
+
+study(title="BarColor v1.0", shorttitle="BarColor v1.0", overlay=true)
+
+//logic
+color = close > open ? 1 : 0
+score = color + color[1] + color[2] + color[3] + color[4] + color[5] + color[6] + color[7]
+trend = score > 5 ? 1 : score < 3 ? -1 : 0
+
+//background
+col = trend == 1 ? lime : trend == -1 ? red : na
+bgcolor(col, transp=50)

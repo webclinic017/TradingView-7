@@ -1,0 +1,14 @@
+//@version=3
+strategy("SMA+CF str", overlay = true, default_qty_type = strategy.percent_of_equity, default_qty_value = 100)
+
+usecf = input(true)
+
+bars = input(7)
+sma = sma(close, bars)
+plot(sma)
+
+if close > sma and (close < open or usecf == false)
+    strategy.entry("Long", strategy.long)
+    
+if close < sma and (close > open or usecf == false)
+    strategy.entry("Short", strategy.short)

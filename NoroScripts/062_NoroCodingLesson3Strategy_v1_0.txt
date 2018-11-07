@@ -1,0 +1,10 @@
+//@version=3
+strategy("Coding lesson 3 - Color SMA", overlay = true, default_qty_type = strategy.percent_of_equity, default_qty_value = 100, pyramiding = 0)
+bars = input(20)
+sma = sma(close, bars)
+plot(sma, color = blue, linewidth = 3, transp = 0)
+size = strategy.position_size
+if low > sma and close < open
+    strategy.entry("Long", strategy.long)
+if high < sma and close > open
+    strategy.entry("Short", strategy.short)

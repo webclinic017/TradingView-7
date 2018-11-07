@@ -1,0 +1,18 @@
+//Noro
+//2017
+
+//@version=3
+
+study(title = "Noro's SMA MTF v1.0", shorttitle = "SMA MTF", overlay = true)
+
+len = input(20, defval = 20, title = "SMA length")
+sma1tf = input(type = resolution, defval = '60', title = "SMA #1 Timeframe")
+sma2tf = input(type = resolution, defval = 'D', title = "SMA #2 Timeframe")
+
+sma1 = security(tickerid, sma1tf, sma(close, len))
+sma2 = security(tickerid, sma2tf, sma(close, len))
+
+p1 = plot(sma1)
+p2 = plot(sma2)
+col = sma1 > sma2 ? lime : red
+fill(p1, p2, color = col, transp = 50)

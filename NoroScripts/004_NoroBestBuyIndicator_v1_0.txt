@@ -1,0 +1,37 @@
+// (c) Noro
+// with ChrisMoody's code "CM_Williams_Vix_Fix" from:
+// https://ru.tradingview.com/script/og7JPrRA-CM-Williams-Vix-Fix-Finds-Market-Bottoms/
+// VixFix is Williams's idea
+// my idea = locomotive-pattern + VixFix = BestBuy-indicator
+
+study("BestBuy 1.0", overlay=true)
+
+//Start of ChrisMoody's code
+
+pd = input(22, title="LookBack Period Standard Deviation High")
+bbl = input(20, title="Bolinger Band Length")
+mult = input(2.0    , minval=1, maxval=5, title="Bollinger Band Standard Devaition Up")
+lb = input(50  , title="Look Back Period Percentile High")
+ph = input(.85, title="Highest Percentile - 0.90=90%, 0.95=95%, 0.99=99%")
+pl = input(1.01, title="Lowest Percentile - 1.10=90%, 1.05=95%, 1.01=99%")
+hp = input(false, title="Show High Range - Based on Percentile and LookBack Period?")
+sd = input(false, title="Show Standard Deviation Line?")
+wvf = ((highest(close, pd)-low)/(highest(close, pd)))*100
+sDev = mult * stdev(wvf, bbl)
+midLine = sma(wvf, bbl)
+lowerBand = midLine - sDev
+upperBand = midLine + sDev
+rangeHigh = (highest(wvf, lb)) * ph
+rangeLow = (lowest(wvf, lb)) * pl
+col = wvf >= upperBand or wvf >= rangeHigh ? lime : gray
+
+//End of ChrisMoody's code
+
+//Start of Serg Noro's ("Vanga") code
+
+bar = close > open ? 1 : close < open ? -1 : 0
+vixfix = wvf >= upperBand or wvf >= rangeHigh ? 1 : 0
+bottom = bar == 1 and bar[1] == -1 and bar[2] == -1 and bar[3] == -1 and vixfix == 1 ? 1 : 0
+plotarrow(bottom == 1 ? 1 : na, title="Buy arrow", colorup=lime, maxheight=60, minheight=50, transp=0)
+data = bottom == 1
+plotchar(data, char=" ", text="BUY!", location=location.belowbar, color=lime, size=size.small)

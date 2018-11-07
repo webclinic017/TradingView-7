@@ -1,0 +1,31 @@
+//@version=2
+strategy("Noro's Trend SMA Strategy v1.3", shorttitle = "Trend SMA str 1.3", overlay=true, default_qty_type = strategy.percent_of_equity, default_qty_value=100.0, pyramiding=0)
+
+fastlen = input(5, "fast SMA Period")
+slowlen = input(20, "slow SMA Period")
+only = input(false, "Only long?")
+
+fastsma = ema(close, fastlen)
+slowsma = ema(close, slowlen)
+
+//PriceChannel
+src = ohlc4
+lasthigh = highest(src, slowlen)
+lastlow = lowest(src, slowlen)
+center = (lasthigh + lastlow) / 2
+
+trend = low > center ? 1 : high < center ? -1 : trend[1]
+
+up = trend == 1 and low < fastsma and close < open and close[1] < open[1] ? 1 : 0
+dn = trend == -1 and high > fastsma and close > open and close[1] > open[1] ? 1 : 0
+
+plot(fastsma, color = red, title = "Fast SMA")
+plot(center, color = blue, title = "Price Channel")
+
+longCondition = up == 1
+if (longCondition)
+    strategy.entry("Long", strategy.long)
+
+shortCondition = dn == 1
+if (shortCondition)
+    strategy.entry("Short", strategy.short, only == true ? 0 : na)

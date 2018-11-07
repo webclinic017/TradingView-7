@@ -1,0 +1,17 @@
+study(title="Noro's ElectroVanga v1.0", shorttitle = "ElectroVanga 1.0", overlay = true)
+
+len = input(30, defval = 30, minval = 1, maxval = 200, title = "Vanga Length")
+src = input(ohlc4, title = "Source")
+
+lasthigh = highest(src, len)
+lastlow = lowest(src, len)
+center = (lasthigh + lastlow) / 2
+
+plot(lasthigh, color=red, linewidth=2)
+plot(lastlow, color=green, linewidth=2)
+plot(center, color=blue, linewidth=2)
+
+trend = center > center[1] ? 1 : center < center[1] ? -1 : trend[1]
+
+plotarrow(close > center and close[1] < center[1] ? 1 : na, title="Up Trend", colorup=black, maxheight=60, minheight=50, transp=0)
+plotarrow(close < center and close[1] > center[1] ? -1 : na, title="Down Trend", colordown=black, maxheight=60, minheight=50, transp=0)

@@ -1,0 +1,38 @@
+//Noro
+//2017
+
+study(title = "Noro's RSI Bottom v1.0", shorttitle = "RSI Bottom 1.0", overlay = true)
+
+//Settings
+usehl = input(false, defval = false, title = "High-low mode")
+sens = input(30, defval = 30, minval = 1, maxval = 40, title = "RSI Sensivity")
+rsilen = input(14, defval = 14, minval = 2, maxval = 200, title = "RSI length")
+src = input(close, defval = close, title = "Source")
+onlyred = input(true, defval = true, title = "Only red candles?")
+needtext = input(true, defval = true, title = "Need text?")
+
+//RSI high
+highup = sma(max(change(usehl == true ? high : src), 0), rsilen)
+highdown = sma(-min(change(usehl == true ? high : src), 0), rsilen)
+highrsi = highdown == 0 ? 100 : highup == 0 ? 0 : 100 - (100 / (1 + highup / highdown))
+
+//RSI low
+lowup = sma(max(change(usehl == true ? low : src), 0), rsilen)
+lowdown = sma(-min(change(usehl == true ? low : src), 0), rsilen)
+lowrsi = lowdown == 0 ? 100 : lowup == 0 ? 0 : 100 - (100 / (1 + lowup / lowdown))
+
+//Strategy
+upsens = 100 - sens
+dnsens = sens
+bot = lowrsi < dnsens and (close < open or onlyred == false) ? 1 : 0
+top = highrsi > upsens ? 1 : 0
+
+//Arrows
+//plotarrow(top == 1 ? -1 : na, title = "Top-Arrow", colorup = blue, colordown = blue, maxheight = 50, minheight = 50, transp = 0)
+plotarrow(bot == 1 ? 1 : na, title = "Bottom-Arrow", colorup = blue, colordown = blue, maxheight = 50, minheight = 50, transp = 0)
+
+//text
+data1 = bot == 1 and needtext == true
+plotchar(data1, char = " ", text = "RSI", location = location.belowbar, color = black, size = size.small)
+//data2 = top == 1 and needtext == true
+//plotchar(data2, char = " ", text = "RSI", color = black, size = size.small)

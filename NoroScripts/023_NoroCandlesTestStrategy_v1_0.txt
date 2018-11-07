@@ -1,0 +1,19 @@
+//@version=3
+strategy("Noro's Candles test", overlay=true, default_qty_type = strategy.percent_of_equity, default_qty_value=100.0, pyramiding=0)
+
+needlong = input(true, "Long")
+needshort = input(true, "Short")
+bars = input(2, defval = 2, minval = 1, maxval = 3, title = "Bars")
+
+//Bars
+bar = close > open ? 1 : close < open ? -1 : 0
+up = bars == 0 ? 1 : bars == 1 and bar == -1 ? 1 : bars == 2 and bar == -1 and bar[1] == -1 ? 1 : bars == 3 and bar == -1 and bar[1] == -1 and bar[2] == -1 ? 1 : 0
+dn = bars == 0 ? 1 : bars == 1 and bar == 1 ? 1 : bars == 2 and bar == 1 and bar[1] == 1 ? 1 : bars == 3 and bar == 1 and bar[1] == 1 and bar[2] == 1 ? 1 : 0
+
+longCondition = up == 1
+if (longCondition)
+    strategy.entry("Long", strategy.long, needlong == false ? 0 : na)
+
+shortCondition = dn == 1
+if (shortCondition)
+    strategy.entry("Short", strategy.short, needshort == false ? 0 : na)

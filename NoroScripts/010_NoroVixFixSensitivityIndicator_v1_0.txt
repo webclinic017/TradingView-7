@@ -1,0 +1,37 @@
+//Noro
+//2017
+
+study(title = "Noro's VixFix Sensivity v1.0", shorttitle = "VixFix sens 1.0", overlay = true)
+
+sens = input(250, defval = 250, minval = 1, maxval = 500, title = "VixFix-sensivity")
+src = input(close, defval = close, title = "Source")
+only = input(true, title = "Only red candles?")
+needtext = input(true, title = "Need text?")
+
+pd = input(22, title="LookBack Period Standard Deviation High")
+bbl = input(20, title="Bolinger Band Length")
+mult = input(2.0    , minval=1, maxval=5, title="Bollinger Band Standard Devaition Up")
+lb = input(50  , title="Look Back Period Percentile High")
+ph = input(.85, title="Highest Percentile - 0.90=90%, 0.95=95%, 0.99=99%")
+pl = input(1.01, title="Lowest Percentile - 1.10=90%, 1.05=95%, 1.01=99%")
+hp = input(false, title="Show High Range - Based on Percentile and LookBack Period?")
+sd = input(false, title="Show Standard Deviation Line?")
+
+wvf = ((highest(close, pd)-src)/(highest(close, pd)))*100
+
+sDev = mult * stdev(wvf, bbl)
+midLine = sma(wvf, bbl)
+lowerBand = midLine - sDev
+upperBand = midLine + sDev
+
+rangeHigh = (highest(wvf, lb)) * ph
+rangeLow = (lowest(wvf, lb)) * pl
+
+bottom = (wvf >= upperBand or wvf >= rangeHigh) and wvf > sens/10 and (close < open or only == false) ? 1 : 0
+
+//arrows
+plotarrow(bottom == 1 ? 1 : na, title = "Bottom?", colorup = lime, colordown = lime, maxheight = 50, minheight = 50, transp = 0)
+
+//text
+data1 = bottom == 1 and needtext == true
+plotchar(data1, char = " ", text = "VIX", location = location.belowbar, color = black, size = size.small)

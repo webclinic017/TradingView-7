@@ -1,0 +1,35 @@
+//@version=2
+strategy("Noro's MinMax tests", shorttitle = "MinMax", overlay=true, default_qty_type = strategy.percent_of_equity, default_qty_value=100.0, pyramiding=0)
+
+//Settings
+needlong = input(true, defval = true, title = "Long")
+needshort = input(true, defval = true, title = "Short")
+needtakes = input(false, defval = false, title = "Takes")
+needstops = input(false, defval = false, title = "Stops")
+takepercent = input(15, defval = 15, minval = 1, maxval = 50, title = "Take, %")
+stoppercent = input(5, defval = 5, minval = 1, maxval = 50, title = "Stop, %")
+smalen = input(26, defval = 26, minval = 2, maxval = 1000, title = "SMA Period")
+
+//SMA
+sma = sma(close, smalen)
+plot(sma)
+
+//Strategy
+max = max(close, open)
+min = min(close, open)
+up = min < min[1] and close < open and close > sma ? 1 : 0
+dn = max > max[1] and close > open and close < sma ? 1 : 0
+
+//Trading
+takelong = up == 1 and needtakes == true ? close - (close / 100 * takepercent) : takelong[1]
+takeshort = dn == 1 and needtakes == true ? close - (close / 100 * takepercent) : takeshort[1]
+stoplong = up == 1 and needstops == true ? close - (close / 100 * stoppercent) : stoplong[1]
+stopshort = dn == 1 and needstops == true ? close + (close / 100 * stoppercent) : stopshort[1]
+
+if up == 1
+    strategy.entry("Long", strategy.long, needlong == false ? 0 : na)
+    strategy.exit("Stop Long", "Long", profit = takelong, stop = stoplong)
+
+if dn == 1
+    strategy.entry("Short", strategy.short, needshort == false ? 0 : na)
+    strategy.exit("Stop Short", "Short", profit = takeshort, stop = stopshort)

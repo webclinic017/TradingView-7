@@ -1,0 +1,21 @@
+// (c) Noro
+// 2017
+
+study(title="Locomotive v1.1", shorttitle="Loco v1.1", overlay=true)
+
+multi=input(title="Enable multi?", defval=1, minval=0, maxval = 1)
+
+//logic
+top = close < open and close[1] >= open[1] and close[2] >= open[2] and close[3] >= open[3] ? 1 : 0
+bottom = close > open and close[1] <= open[1] and close[2] <= open[2] and close[3] <= open[3] ? 1 : 0
+position = top == 1 ? -1 : bottom == 1 ? 1 : position[1]
+
+//arrows
+plotarrow(top == 1 and (position[1] == 1 or multi == 1) ? -1 : na, title="Top?", colordown=red, maxheight=60, minheight=50, transp=0)
+plotarrow(bottom == 1 and (position[1] == -1 or multi == 1) ? 1 : na, title="Bottom?", colorup=lime, maxheight=60, minheight=50, transp=0)
+
+//text
+data1 = top == 1 and (position[1] == 1 or multi == 1)
+data2 = bottom == 1 and (position[1] == -1 or multi == 1)
+plotchar(data1, char=" ", text="EXIT", location=location.abovebar, color=red, size=size.small)
+plotchar(data2, char=" ", text="LONG", location=location.belowbar, color=lime, size=size.small)

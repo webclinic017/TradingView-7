@@ -1,0 +1,11 @@
+//Noro
+//2018
+
+//@version=3
+study(title = "Rolling Moving Average", shorttitle = "RMA", overlay = true)
+
+period = input(9, defval = 9, minval = 1, title = "RMA Period")
+source = input(close, defval = close, title = "RMA Source")
+
+rma = rma(source, period)
+plot(rma, color = blue, linewidth = 2)
