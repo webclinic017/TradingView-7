@@ -1,0 +1,48 @@
+//Noro
+//2018
+
+//@version=3
+study(title = "Alert WhiteBox ShiftMA", shorttitle = "Alert WhiteBox ShiftMA", overlay = true)
+
+//Settings
+needlong = input(true, defval = true, title = "Long")
+needshort = input(true, defval = true, title = "Short")
+per = input(3, title = "Length")
+s = input(title = "Source", defval = "7. OHLC4", type = string, options = ["1. Open", "2. High", "3. Low", "4. Close", "5. HL2", "6. HLC3", "7. OHLC4", "8. OC2", "9. PCMA"])
+shortlevel = input(10.0, title = "Short line (red)")
+longlevel = input(-5.0, title = "Long line (lime)")
+arrows = input(false, defval = false, title = "Show arrows")
+
+mult = 1 / syminfo.mintick
+
+//SMAs
+oc2 = (open + close) / 2
+src = s == "1. Open" ? open : s == "2. High" ? high : s == "3. Low" ? low : s == "4. Close" ? close : s == "5. HL2" ? hl2 : s == "6. HLC3" ? hlc3 : s == "7. OHLC4" ? ohlc4 : s == "8. OC2" ? oc2: close
+pcma = (highest(high, per) + lowest(low, per)) / 2
+sma = s == "9. PCMA" ? round(pcma * mult) / mult : round(sma(src, per) * mult) / mult
+shortline = round(sma * ((100 + shortlevel) / 100) * mult) / mult
+longline = round(sma * ((100 + longlevel) / 100) * mult) / mult
+closeline = sma
+
+//Lines
+shortcolor = needshort ? red : na
+longcolor = needlong ? lime : na
+plot(shortline, linewidth = 2, color = shortcolor, title = "Short line")
+plot(closeline, linewidth = 2, color = blue, title = "Close line")
+plot(longline, linewidth = 2, color = longcolor, title = "Long line")
+
+//Trades
+size = 0.0
+size := low <= longline[1] ? 1 : high >= shortline[1] ? -1 : size[1] > 0 and high >= closeline[1] ? 0 : size[1] < 0 and low <= closeline[1] ? 0 : size[1]
+
+//Arrows
+longsignal = false
+shortsignal = false
+longsignal := low < longline[1] and size[1] <= 0
+shortsignal := high > shortline[1] and size[1] >= 0
+plotarrow(longsignal and arrows and needlong ? 1 : na, colorup = blue, colordown = blue, transp = 0)
+plotarrow(shortsignal and arrows and needshort ? -1 : na, colorup = blue, colordown = blue, transp = 0)
+
+//Alerts
+alertcondition(longsignal, title = 'Signal Long ' + symbol, message = 'Signal Long ' + symbol)
+alertcondition(shortsignal, title = 'Signal Short ' + symbol, message = 'Signal Short ' + symbol)

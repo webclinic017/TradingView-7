@@ -1,7 +1,12 @@
-// (c) Noro
-//2017
+// Modified version of Noro's SILA v1.6L Strategy
+// - Added flag for allowing opening new position on yellow arrow 
+// - Added date/time ranges
 
-study(title="Noro's SILA v1.6L", shorttitle="SILA v1.6L", overlay=true)
+//@version=2
+
+strategy(title="Alex (Noro) SILA v1.6.1L Strategy", shorttitle="Alex (Noro) SILA v1.6.1L str", overlay=true, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, default_qty_type=strategy.percent_of_equity, default_qty_value=98)
+
+//settings
 sensup = input(5, title="Uptrend-sensivity", minval = -8, maxval = 8)
 sensdn = input(5, title="Downtrend-sensivity", minval = -8, maxval = 8)
 usewow = input(true, title="Use trend-indicator WOW?")
@@ -19,7 +24,14 @@ usebgdn = input(true, title="Need downtrend-background?")
 usealw = input(true, title="Need background always?")
 usearr = input(true, title="Need new-trend-arrows?")
 useloco = input(true, title="Need locomotive-arrows?")
-usemon = input(true, title="Need money?") //joke
+uselocoentry = input(false, title="Use locomotive-arrows for position entry?")
+usemon = input(true, title="Need money (Joke)?") //joke
+fromyear = input(2018, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
+toyear = input(2018, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
+frommonth = input(12, defval = 01, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(12, defval = 12, minval = 01, maxval = 12, title = "To Month")
+fromday = input(01, defval = 01, minval = 01, maxval = 31, title = "From day")
+today = input(31, defval = 31, minval = 01, maxval = 31, title = "To day")
 
 // WOW 1.0 method
 lasthigh = highest(close, 30)
@@ -67,10 +79,8 @@ highestC   = highest(21)
 lowestC    = lowest(21)
 hiLimit = highestC[1]-(avgTR[1] * 3)
 loLimit = lowestC[1]+(avgTR[1] * 3)
-ret = iff(close > hiLimit and close > loLimit, hiLimit,
-        iff(close < loLimit and close < hiLimit, loLimit, nz(ret[1], 0)))
-pos =	iff(close > ret, 1,
-	    iff(close < ret, -1, nz(pos[1], 0))) 
+ret = iff(close > hiLimit and close > loLimit, hiLimit, iff(close < loLimit and close < hiLimit, loLimit, nz(ret[1], 0)))
+pos =	iff(close > ret, 1, iff(close < ret, -1, nz(pos[1], 0))) 
 //End of HPotter's code
 
 TTStrend = usetts == true ? pos == 1 ? 1 : pos == -1 ? -1 : TTStrend[1] : 0
@@ -113,39 +123,51 @@ plot(pricelo * (1 - 7 * per), color=color7, linewidth=1, title="SILA-line")
 color8 = usetl == true ? trends > 7 ? blue : na : na
 plot(pricelo * (1 - 8 * per), color=color8, linewidth=1, title="SILA-line")
 
-color10 = usetl == true ? trends < 0 ? black : na : na
+color10 = usetl == true ? trends < 0 ? teal : na : na
 plot(pricehi * (1 + per), color=color10, linewidth=1, title="SILA-line")
-color11 = usetl == true ? trends < -1 ? black : na : na
+color11 = usetl == true ? trends < -1 ? teal : na : na
 plot(pricehi * (1 + 2 * per), color=color11, linewidth=1, title="SILA-line")
-color12 = usetl == true ? trends < -2 ? black : na : na
+color12 = usetl == true ? trends < -2 ? teal : na : na
 plot(pricehi * (1 + 3 * per), color=color12, linewidth=1, title="SILA-line")
-color13 = usetl == true ? trends < -3 ? black : na : na
+color13 = usetl == true ? trends < -3 ? teal : na : na
 plot(pricehi * (1 + 4 * per), color=color13, linewidth=1, title="SILA-line")
-color14 = usetl == true ? trends < -4 ? black : na : na
+color14 = usetl == true ? trends < -4 ? teal : na : na
 plot(pricehi * (1 + 5 * per), color=color14, linewidth=1, title="SILA-line")
-color15 = usetl == true ? trends < -5 ? black : na : na
+color15 = usetl == true ? trends < -5 ? teal : na : na
 plot(pricehi * (1 + 6 * per), color=color15, linewidth=1, title="SILA-line")
-color16 = usetl == true ? trends < -6 ? black : na : na
+color16 = usetl == true ? trends < -6 ? teal : na : na
 plot(pricehi * (1 + 7 * per), color=color16, linewidth=1, title="SILA-line")
-color17 = usetl == true ? trends < -7 ? black : na : na
+color17 = usetl == true ? trends < -7 ? teal : na : na
 plot(pricehi * (1 + 8 * per), color=color17, linewidth=1, title="SILA-line")
 
 //background
 col = usebgup == true and trends >= sensup ? 1 : usebgdn == true and trends <= (-1 * sensdn) ? -1 : usealw == true ? col[1] : 0
-bgcolor = col == 1 ? lime : col == -1 ? red : na
+bgcolor = col == 1 ? #006600FF : col == -1 ? #660000FF : na
 bgcolor(bgcolor, transp=70)
 
 //arrows
 posi = trends >= sensup ? 1 : trends <= (-1 * sensdn) ? -1 : posi[1]
 arr = usearr == true ? posi == 1 and posi[1] < 1 ? 1 : posi == -1 and posi[1] > -1 ? -1 : na : na
-plotarrow(arr == 1 ? 1 : na, title="UpArrow", colorup=blue, maxheight=60, minheight=50, transp=0)
-plotarrow(arr == -1 ? -1 : na, title="DnArrow", colordown=blue, maxheight=60, minheight=50, transp=0)
+//plotarrow(arr == 1 ? 1 : na, title="UpArrow", colorup=blue, maxheight=60, minheight=50, transp=0)
+//plotarrow(arr == -1 ? -1 : na, title="DnArrow", colordown=blue, maxheight=60, minheight=50, transp=0)
 
 //locomotive
 bar = close > open ? 1 : close < open ? -1 : 0
 locotop = bar == -1 and bar[1] == 1 and bar[2] == 1 ? 1 : 0
 locobot = bar == 1 and bar[1] == -1 and bar[2] == -1 ? 1 : 0
 entry = useloco == false ? 1 : posi == posi[1] ? (locotop == 1 and posi == -1) or (locobot == 1 and posi == 1) ? 1 : entry[1] : 0
-plotarrow(locobot == 1 and entry[1] == 0 and posi == 1 ? 1 : na, title="UpLocomotive", colorup=yellow, maxheight=60, minheight=50, transp=0)
-plotarrow(locotop == 1 and entry[1] == 0 and posi == -1 ? -1 : na, title="DnLocomotive", colordown=yellow, maxheight=60, minheight=50, transp=0)
+uploco = locobot == 1 and entry[1] == 0 and posi == 1
+dnloco = locotop == 1 and entry[1] == 0 and posi == -1
+plotarrow(uploco ? 1 : na, title="UpLocomotive", colorup=yellow, maxheight=60, minheight=50, transp=0)
+plotarrow(dnloco ? -1 : na, title="DnLocomotive", colordown=yellow, maxheight=60, minheight=50, transp=0)
 
+longCondition = uselocoentry ? uploco : arr == 1
+if (longCondition)
+    strategy.entry("Long", strategy.long, na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+
+shortCondition = uselocoentry ? dnloco : arr == -1
+if (shortCondition)
+    strategy.entry("Short", strategy.short, na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+    
+if time > timestamp(toyear, tomonth, today, 23, 59)
+    strategy.close_all()

@@ -1,0 +1,103 @@
+//@version=2
+study(title = "Alex (Noro) Trend MAs Strategy Indicator v2.3", shorttitle = "Alex (Noro) Trend MAs str ind 2.3", overlay=true)
+
+openpos_size = 0.0 
+openpos_size := nz(openpos_size[1], 0.0) 
+stoplong = 0.0 
+stoplong := nz(stoplong[1], 0.0) 
+stopshort = 0.0 
+stopshort := nz(stopshort[1], 0.0) 
+
+
+//Settings
+needlong = input(true, "long")
+needshort = input(true, "short")
+needstops = input(false, "stops")
+stoppercent = input(1, defval = 5, minval = 1, maxval = 50, title = "Stop, %")
+usefastsma = input(true, "Use fast MA Filter")
+fastlen = input(3, defval = 5, minval = 1, maxval = 50, title = "fast MA Period")
+slowlen = input(21, defval = 20, minval = 2, maxval = 200, title = "slow MA Period")
+bars = input(0, defval = 2, minval = 0, maxval = 3, title = "Bars Q")
+needbg = input(false, defval = false, title = "Need trend Background?")
+needex = input(true, defval = true, title = "Need extreme? (crypto/fiat only!!!)")
+fromyear = input(2018, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
+toyear = input(2020, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
+frommonth = input(12, defval = 01, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(12, defval = 12, minval = 01, maxval = 12, title = "To Month")
+fromday = input(01, defval = 01, minval = 01, maxval = 31, title = "From day")
+today = input(31, defval = 31, minval = 01, maxval = 31, title = "To day")
+
+src = close
+
+//PriceChannel 1
+lasthigh = highest(src, slowlen)
+lastlow = lowest(src, slowlen)
+center = (lasthigh + lastlow) / 2
+
+//PriceChannel 2
+lasthigh2 = highest(src, fastlen)
+lastlow2 = lowest(src, fastlen)
+center2 = (lasthigh2 + lastlow2) / 2
+
+//Trend
+trend = low > center and low[1] > center[1] ? 1 : high < center and high[1] < center[1] ? -1 : trend[1]
+trendFlag = low > center and low[1] > center[1] ? 1 : high < center and high[1] < center[1] ? -1 : 0
+
+//Bars
+bar = close > open ? 1 : close < open ? -1 : 0
+redbars = bars == 0 ? 1 : bars == 1 and bar == -1 ? 1 : bars == 2 and bar == -1 and bar[1] == -1 ? 1 : bars == 3 and bar == -1 and bar[1] == -1 and bar[2] == -1 ? 1 : 0
+greenbars = bars == 0 ? 1 : bars == 1 and bar == 1 ? 1 : bars == 2 and bar == 1 and bar[1] == 1 ? 1 : bars == 3 and bar == 1 and bar[1] == 1 and bar[2] == 1 ? 1 : 0
+
+//Fast RSI
+fastup = rma(max(change(close), 0), 2)
+fastdown = rma(-min(change(close), 0), 2)
+fastrsi = fastdown == 0 ? 100 : fastup == 0 ? 0 : 100 - (100 / (1 + fastup / fastdown))
+
+//CryptoBottom
+mac = sma(close, 10)
+len = abs(close - mac)
+sma = sma(len, 100)
+max = max(open, close)
+min = min(open, close)
+
+//Signals
+up1 = trend == 1 and (low < center2 or usefastsma == false) and redbars == 1
+dn1 = trend == -1 and (high > center2 or usefastsma == false) and greenbars == 1
+up2 = high < center and high < center2 and bar == -1 and needex
+dn2 = low > center and low > center2 and bar == 1 and needex
+up3 = close < open and len > sma * 3 and min < min[1] and fastrsi < 10 ? 1 : 0
+
+
+//Background
+col = needbg == false ? na : trend == 1 ? lime : red
+bgcolor(col, transp = 80)
+
+dn_signal = dn1
+up_signal = up1 or up2 or up3
+
+//Trading 
+closelong_cond  = openpos_size > 0 and (needstops == true and stoplong < high and stoplong > low or needstops == false and dn_signal)
+openshort_cond  = openpos_size >= 0 and dn_signal and needshort == true
+closeshort_cond = openpos_size < 0 and (needstops == true and stopshort < high and stopshort > low or needstops == false and up_signal)
+openlong_cond   = openpos_size <= 0 and up_signal and needlong == true
+
+plotshape(stoplong, style=shape.circle, color=white, location=location.absolute)
+plotshape(stopshort, style=shape.circle, color=purple, location=location.absolute)
+
+plotarrow(closelong_cond == true ? -1 : na, colorup=red, colordown=red, maxheight=200, minheight=200, transp=0)
+plotarrow(openshort_cond  == true ? -1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+plotarrow(closeshort_cond == true ?  1 : na, colorup=purple, colordown=purple, maxheight=200, minheight=200, transp=0)
+plotarrow(openlong_cond  == true ?  1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+
+alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='0301 - Signal to Close ALL Positions!', message='Alex (Noro) Trend MAs v2.3 Strategy - Signal to Close ALL Positions!')
+alertcondition(openlong_cond  == true, title='0302 - Signal to Close Short and Open Long Position!', message='Alex (Noro) Trend MAs v2.3 Strategy - Signal to Close Short and Open Long Position!')
+alertcondition(openshort_cond  == true, title='0303 - Signal to Close Long and Open Short Position!', message='Alex (Noro) Trend MAs v2.3 Strategy - Signal to Close Long and Open Short Position!')
+
+openpos_size := iff(closelong_cond == true or closeshort_cond == true, 0, openpos_size)
+openpos_size := iff(openlong_cond == true, 1, iff(openshort_cond == true, -1, openpos_size))
+
+// TODO ?:
+stoplong  := needstops == true and (closelong_cond or closeshort_cond) ? 0 : openpos_size > 0 ? stoplong : 0
+stopshort := needstops == true and (closelong_cond or closeshort_cond) ? 0 : openpos_size < 0 ? stopshort : 0
+stoplong  := openlong_cond and needstops == true ? close - (close / 100 * stoppercent) : stoplong
+stopshort := openshort_cond and needstops == true ? close + (close / 100 * stoppercent) : stopshort

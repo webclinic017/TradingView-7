@@ -1,0 +1,14 @@
+//Noro
+//2019
+
+//@version=3
+study(title = "Noro's Pump&Dump Detector", shorttitle = "P&D", overlay = true)
+showpump = input(true, title = "Show pumps")
+showdump = input(true, title = "Show dumps")
+mult = input(5, title = "Sensivity")
+body = abs(close - open)
+smabody = sma(body, 100)
+pump = body > smabody * mult and close > open
+dump = body > smabody * mult and close < open
+col = pump and showpump ? lime : dump and showdump ? red : na
+bgcolor(col, transp = 50)

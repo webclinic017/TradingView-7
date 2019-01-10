@@ -1,0 +1,30 @@
+study("SuperCloud v1.0", overlay = true)
+
+//Mode
+Factor=input(title="Super Trend", defval=3, minval=1,maxval = 100)
+ATR=input(title="ATR", defval=7, minval=1,maxval = 100)
+
+//Super Trend ATR 1
+Up=hl2-(Factor*atr(ATR))
+Dn=hl2+(Factor*atr(ATR))
+
+TUp=close[1]>TUp[1]? max(Up,TUp[1]) : Up
+TDown=close[1]<TDown[1]? min(Dn,TDown[1]) : Dn
+
+Trend = close > TDown[1] ? 1: close< TUp[1]? -1: nz(Trend[1],1)
+
+Tsl1 = Trend==1? TUp: TDown
+Tsl2 = Trend==1? TDown: TUp
+
+linecolor = Trend == 1 ? green : red
+
+//Affichage
+P1 = plot(Tsl1, color = linecolor , style = line , linewidth = 1,title = "SuperTrend ATR-1")
+P2 = plot(Tsl2, color = linecolor , style = line , linewidth = 1,title = "SuperTrend ATR-2")
+fill(P1, P2, color = linecolor == red ? red : lime)
+
+plotarrow(low < Tsl1 and Trend == 1 ? Trend : na, title="Up Trend", colorup=blue, maxheight=60, minheight=50, transp=0)
+plotarrow(high > Tsl1 and Trend == -1 ? Trend : na, title="Down Trend", colordown=blue, maxheight=60, minheight=50, transp=0)
+
+plotarrow(low < Tsl2 and Trend == -1 ? 1 : na, title="Up Contrtrend", colorup=red, maxheight=60, minheight=50, transp=0)
+plotarrow(high > Tsl2 and Trend == 1 ? -1 : -na, title="Down Contrtrend", colordown=red, maxheight=60, minheight=50, transp=0)
