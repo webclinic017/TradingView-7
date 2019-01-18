@@ -1,0 +1,72 @@
+//@version=3
+study(title = "Alex (Noro) Robot BitMEX Fast RSI v1.0 Indicator", shorttitle = "Alex (Noro) Robot BitMEX Fast RSI v1.0 Indicator", overlay = true)
+
+openpos_size = 0.0 
+openpos_size := nz(openpos_size[1], 0.0) 
+openpos_avg_price = 0.0
+openpos_avg_price := nz(openpos_avg_price[1], 0.0) 
+
+//Settings
+needlong = input(true, defval = true, title = "Long")
+needshort = input(true, defval = true, title = "Short")
+capital = input(100, defval = 100, minval = 1, maxval = 10000, title = "Lot, %")
+rsiperiod = input(7, defval = 7, minval = 2, maxval = 100, title = "RSI period")
+rsibars = input(3, defval = 3, minval = 1, maxval = 20, title = "RSI signals")
+rsilong = input(30, defval = 30, minval = 1, maxval = 50, title = "RSI Long")
+rsishort = input(70, defval = 70, minval = 50, maxval = 99, title = "RSI Short")
+useocf = input(true, defval = true, title = "Use Open Color Filter")
+useccf = input(true, defval = true, title = "Use Close Color Filter")
+openbars = input(3, defval = 3, minval = 1, maxval = 20, title = "Open Color, Bars")
+closebars = input(1, defval = 1, minval = 1, maxval = 20, title = "Close Color, Bars")
+useobf = input(true, defval = true, title = "Use Open Body Filter")
+usecbf = input(true, defval = true, title = "Use Close Body Filter")
+openbody = input(20, defval = 20, minval = 0, maxval = 1000, title = "Open Body Minimum, %")
+closebody = input(20, defval = 20, minval = 0, maxval = 1000, title = "Close Body Minimum, %")
+
+//RSI
+uprsi = rma(max(change(close), 0), rsiperiod)
+dnrsi = rma(-min(change(close), 0), rsiperiod)
+rsi = dnrsi == 0 ? 100 : uprsi == 0 ? 0 : 100 - (100 / (1 + uprsi / dnrsi))
+rsidn = rsi < rsilong ? 1 : 0
+rsiup = rsi > rsishort ? 1 : 0
+rsidnok = sma(rsidn, rsibars) == 1
+rsiupok = sma(rsiup, rsibars) == 1
+//Body Filter
+body = abs(close - open)
+abody = sma(body, 10)
+openbodyok = body >= abody / 100 * openbody or useobf == false
+closebodyok = body >= abody / 100 * closebody or usecbf == false
+//Color Filter
+bar = close > open ? 1 : close < open ? -1 : 0
+gbar = bar == 1 ? 1 : 0
+rbar = bar == -1 ? 1 : 0
+opengbarok = sma(gbar, openbars) == 1 or useocf == false
+openrbarok = sma(rbar, openbars) == 1 or useocf == false
+closegbarok = sma(gbar, closebars) == 1 or useccf == false
+closerbarok = sma(rbar, closebars) == 1 or useccf == false
+//Signals
+up = openrbarok and rsidnok and openbodyok and (openpos_size == 0 or close < openpos_avg_price)
+dn = opengbarok and rsiupok and openbodyok and (openpos_size == 0 or close > openpos_avg_price)
+exit = ((openpos_size > 0 and closegbarok and rsi > rsilong) or (openpos_size < 0 and closerbarok and rsi < rsishort)) and closebodyok
+
+dn_signal = dn
+up_signal = up
+
+//Trading 
+closelong_cond  = openpos_size > 0 and (dn_signal or exit)
+openshort_cond  = openpos_size >= 0 and dn_signal and needshort == true
+closeshort_cond = openpos_size < 0 and (up_signal or exit)
+openlong_cond   = openpos_size <= 0 and up_signal and needlong == true
+
+plotarrow(closelong_cond == true ? -1 : na, colorup=red, colordown=red, maxheight=200, minheight=200, transp=0)
+plotarrow(openshort_cond  == true ? -1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+plotarrow(closeshort_cond == true ?  1 : na, colorup=purple, colordown=purple, maxheight=200, minheight=200, transp=0)
+plotarrow(openlong_cond  == true ?  1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+
+alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='0501 - Signal to Close ALL Positions!', message='Alex (Noro) Robot BitMEX Fast RSI v1.0 Strategy - Signal to Close ALL Positions!')
+alertcondition(openlong_cond  == true, title='0502 - Signal to Close ALL and Open Long Position!', message='Alex (Noro) Robot BitMEX Fast RSI v1.0 Strategy - Signal to Close ALL and Open Long Position!')
+alertcondition(openshort_cond  == true, title='0503 - Signal to Close ALL and Open Short Position!', message='Alex (Noro) Robot BitMEX Fast RSI v1.0 Strategy - Signal to Close ALL and Open Short Position!')
+
+openpos_size := iff(closelong_cond == true or closeshort_cond == true, 0, openpos_size)
+openpos_size := iff(openlong_cond == true, 1, iff(openshort_cond == true, -1, openpos_size))
+openpos_avg_price := iff(openlong_cond == true or openshort_cond == true, close, openpos_avg_price)
