@@ -1,11 +1,9 @@
-//Noro
-//2018
 //@version=3
-strategy(title = "Alex (Noro) Robot BitMEX Fast RSI v1.0", shorttitle = "Alex (Noro) Robot BitMEX Fast RSI v1.0", overlay = false, default_qty_type = strategy.percent_of_equity, default_qty_value = 100, pyramiding = 10)
+strategy(title = "Alex (Noro) Robot BitMEX Fast RSI v1.0", shorttitle = "Alex (Noro) Robot BitMEX Fast RSI v1.0", overlay = false)
 //Settings
 needlong = input(true, defval = true, title = "Long")
 needshort = input(true, defval = true, title = "Short")
-capital = input(100, defval = 100, minval = 1, maxval = 10000, title = "Lot, %")
+capital = input(98, defval = 100, minval = 1, maxval = 10000, title = "Lot, %")
 rsiperiod = input(7, defval = 7, minval = 2, maxval = 100, title = "RSI period")
 rsibars = input(3, defval = 3, minval = 1, maxval = 20, title = "RSI signals")
 rsilong = input(30, defval = 30, minval = 1, maxval = 50, title = "RSI Long")
