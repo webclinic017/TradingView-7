@@ -4,7 +4,7 @@
 
 //@version=2
 
-strategy(title="Alex (Noro) SILA v1.6.1L Strategy", shorttitle="Alex (Noro) SILA v1.6.1L str", overlay=true, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, default_qty_type=strategy.percent_of_equity, default_qty_value=98)
+strategy(title="Alex (Noro) SILA v1.6.1L Strategy", shorttitle="Alex (Noro) SILA v1.6.1L str", overlay=true, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding=0, default_qty_type=strategy.percent_of_equity, default_qty_value=98)
 
 //settings
 sensup = input(5, title="Uptrend-sensivity", minval = -8, maxval = 8)
