@@ -1,0 +1,74 @@
+//Noro
+//2018
+
+//@version=2
+study("Alex (Noro) Bands Scalper v1.6 Strategy Indicator", shorttitle = "Alex (Noro) Bands Scalper 1.6 str ind", overlay = true)
+
+openpos_size = 0.0 
+openpos_size := nz(openpos_size[1], 0.0) 
+openpos_avg_price = 0.0
+openpos_avg_price := nz(openpos_avg_price[1], 0.0) 
+
+//Settings
+needlong = input(true, defval = true, title = "Long")
+needshort = input(true, defval = true, title = "Short")
+takepercent = input(0, defval = 0, minval = 0, maxval = 1000, title = "take, %")
+needbe = input(true, defval = true, title = "Bands Entry")
+needct = input(false, defval = false, title = "Counter-trend entry")
+bodylen = input(10, defval = 10, minval = 0, maxval = 50, title = "Body length")
+trb = input(1, defval = 1, minval = 1, maxval = 5, title = "Trend bars")
+len = input(20, defval = 20, minval = 2, maxval = 200, title = "Period")
+src = close
+
+//PriceChannel 1
+lasthigh = highest(src, len)
+lastlow = lowest(src, len)
+center = (lasthigh + lastlow) / 2
+
+//Distance
+dist = abs(src - center)
+distsma = sma(dist, len)
+hd = center + distsma
+ld = center - distsma
+hd2 = center + distsma * 2
+ld2 = center - distsma * 2
+
+//Trend
+chd = close > hd
+cld = close < ld
+uptrend = trb == 1 and chd ? 1 : trb == 2 and chd and chd[1] ? 1 : trb == 3 and chd and chd[1] and chd[2] ? 1 : trb == 4 and chd and chd[1] and chd[2] and chd[3] ? 1 : trb == 5 and chd and chd[1] and chd[2] and chd[3] and chd[4] ? 1 : 0
+dntrend = trb == 1 and cld ? 1 : trb == 2 and cld and cld[1] ? 1 : trb == 3 and cld and cld[1] and cld[2] ? 1 : trb == 4 and cld and cld[1] and cld[2] and cld[3] ? 1 : trb == 5 and cld and cld[1] and cld[2] and cld[3] and cld[4] ? 1 : 0
+trend = dntrend == 1 and high < center ? -1 : uptrend == 1 and low > center ? 1 : trend[1]
+
+//Body
+body = abs(close - open)
+smabody = ema(body, 30) / 10 * bodylen
+
+//Signals
+bar = close > open ? 1 : close < open ? -1 : 0
+up7 = trend == 1 and ((bar == -1 and bar[1] == -1) or (body > smabody and bar == -1)) ? 1 : 0
+dn7 = trend == 1 and ((bar == 1 and bar[1] == 1) or (close > hd and needbe == true)) and close > openpos_avg_price * (100 + takepercent) / 100 ? 1 : 0
+up8 = trend == -1 and ((bar == -1 and bar[1] == -1) or (close < ld2 and needbe == true)) and close < openpos_avg_price * (100 - takepercent) / 100 ? 1 : 0
+dn8 = trend == -1 and ((bar == 1 and bar[1] == 1) or (body > smabody and bar == 1)) ? 1 : 0
+
+dn_signal = dn7 == 1 or dn8 == 1
+up_signal = up7 == 1 or up8 == 1
+
+//Trading 
+closelong_cond  = openpos_size > 0 and dn_signal
+openshort_cond  = openpos_size >= 0 and dn_signal and needshort == true and not (trend == 1 and needct == false)
+closeshort_cond = openpos_size < 0 and up_signal
+openlong_cond   = openpos_size <= 0 and up_signal and needlong == true and not (trend == -1 and needct == false)
+
+plotarrow(closelong_cond == true ? -1 : na, colorup=red, colordown=red, maxheight=200, minheight=200, transp=0)
+plotarrow(openshort_cond  == true ? -1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+plotarrow(closeshort_cond == true ?  1 : na, colorup=purple, colordown=purple, maxheight=200, minheight=200, transp=0)
+plotarrow(openlong_cond  == true ?  1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+
+alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='0601 - Signal to Close ALL Positions!', message='Alex (Noro) Bands Scalper v1.6 Strategy - Signal to Close ALL Positions!')
+alertcondition(openlong_cond  == true, title='0602 - Signal to Close ALL and Open Long Position!', message='Alex (Noro) Bands Scalper v1.6 Strategy - Signal to Close ALL and Open Long Position!')
+alertcondition(openshort_cond  == true, title='0603 - Signal to Close ALL and Open Short Position!', message='Alex (Noro) Bands Scalper v1.6 Strategy - Signal to Close ALL and Open Short Position!')
+
+openpos_size := iff(closelong_cond == true or closeshort_cond == true, 0, openpos_size)
+openpos_size := iff(openlong_cond == true, 1, iff(openshort_cond == true, -1, openpos_size))
+openpos_avg_price := iff(openlong_cond == true or openshort_cond == true, close, openpos_avg_price)
