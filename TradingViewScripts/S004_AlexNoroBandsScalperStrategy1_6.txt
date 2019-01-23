@@ -2,7 +2,7 @@
 //2018
 
 //@version=2
-strategy("Alex (Noro) Bands Scalper v1.6 Strategy", shorttitle = "Alex (Noro) Bands Scalper 1.6 str", overlay = true, commission_type=strategy.commission.percent, commission_value=0.15, default_qty_type = strategy.percent_of_equity, default_qty_value = 98.0, pyramiding = 0)
+strategy("S004 Alex (Noro) Bands Scalper v1.6 Strategy", shorttitle = "S004 Alex (Noro) Bands Scalper 1.6 str", overlay = true, commission_type=strategy.commission.percent, commission_value=0.15, default_qty_type = strategy.percent_of_equity, default_qty_value = 98.0, pyramiding = 0)
 
 //Settings
 needlong = input(true, defval = true, title = "Long")

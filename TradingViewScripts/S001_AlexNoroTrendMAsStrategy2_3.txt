@@ -1,5 +1,5 @@
 //@version=2
-strategy(title = "Alex (Noro) Trend MAs Strategy v2.3", shorttitle = "Alex (Noro) Trend MAs str 2.3", overlay=true, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding=0)
+strategy(title = "S001 Alex (Noro) Trend MAs Strategy v2.3", shorttitle = "S001 Alex (Noro) Trend MAs str 2.3", overlay=true, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding=0)
 
 //Settings
 needlong = input(true, "long")

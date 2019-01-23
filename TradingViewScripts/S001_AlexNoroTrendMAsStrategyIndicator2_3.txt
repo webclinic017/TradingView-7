@@ -1,5 +1,5 @@
 //@version=2
-study(title = "Alex (Noro) Trend MAs Strategy Indicator v2.3", shorttitle = "Alex (Noro) Trend MAs str ind 2.3", overlay=true)
+study(title = "S001 Alex (Noro) Trend MAs Strategy Indicator v2.3", shorttitle = "S001 Alex (Noro) Trend MAs str ind 2.3", overlay=true)
 
 openpos_size = 0.0 
 openpos_size := nz(openpos_size[1], 0.0) 

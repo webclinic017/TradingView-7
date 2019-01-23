@@ -3,7 +3,7 @@
 
 //@version=2
 
-study(title="Alex (Noro) SILA v1.6.1L Strategy Indicator", shorttitle="Alex (Noro) SILA v1.6.1L str ind", overlay=true)
+study(title="S002 Alex (Noro) SILA v1.6.1L Strategy Indicator", shorttitle="S002 Alex (Noro) SILA v1.6.1L str ind", overlay=true)
 
 openpos_size = 0.0 
 openpos_size := nz(openpos_size[1], 0.0) 

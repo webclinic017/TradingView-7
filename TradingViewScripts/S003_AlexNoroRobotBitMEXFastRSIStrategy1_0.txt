@@ -1,5 +1,5 @@
 //@version=3
-strategy(title = "Alex (Noro) Robot BitMEX Fast RSI v1.0", shorttitle = "Alex (Noro) Robot BitMEX Fast RSI v1.0", overlay = false, commission_type=strategy.commission.percent, commission_value=0.15)
+strategy(title = "S003 Alex (Noro) Robot BitMEX Fast RSI v1.0", shorttitle = "S003 Alex (Noro) Robot BitMEX Fast RSI v1.0", overlay = false, commission_type=strategy.commission.percent, commission_value=0.15)
 //Settings
 needlong = input(true, defval = true, title = "Long")
 needshort = input(true, defval = true, title = "Short")

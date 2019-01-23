@@ -4,11 +4,11 @@
 
 //@version=2
 
-strategy(title="Alex (Noro) SILA v1.6.1L Strategy", shorttitle="Alex (Noro) SILA v1.6.1L str", overlay=true, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding=0, default_qty_type=strategy.percent_of_equity, default_qty_value=98)
+strategy(title="S002 Alex (Noro) SILA v1.6.1L Strategy", shorttitle="S002 Alex (Noro) SILA v1.6.1L str", overlay=true, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding=0, default_qty_type=strategy.percent_of_equity, default_qty_value=98)
 
 //settings
-sensup = input(5, title="Uptrend-sensivity", minval = -8, maxval = 8)
-sensdn = input(5, title="Downtrend-sensivity", minval = -8, maxval = 8)
+sensup = input(0, title="Uptrend-sensivity", minval = -8, maxval = 8)
+sensdn = input(0, title="Downtrend-sensivity", minval = -8, maxval = 8)
 usewow = input(true, title="Use trend-indicator WOW?")
 usebma = input(true, title="Use trend-indicator BestMA?")
 usebc = input(true, title="Use trend-indicator BarColor?")
@@ -19,16 +19,16 @@ usersi = input(true, title="Use trend-indicator RSI?")
 usewto = input(true, title="Use trend-indicator WTO?")
 dist = input(100, title="Distance SILA-lines", minval = 0, maxval = 100)
 usetl = input(true, title="Need SILA-lines?")
-usebgup = input(true, title="Need uptrend-background?")
-usebgdn = input(true, title="Need downtrend-background?")
-usealw = input(true, title="Need background always?")
+usebgup = input(false, title="Need uptrend-background?")
+usebgdn = input(false, title="Need downtrend-background?")
+usealw = input(false, title="Need background always?")
 usearr = input(true, title="Need new-trend-arrows?")
 useloco = input(true, title="Need locomotive-arrows?")
 uselocoentry = input(false, title="Use locomotive-arrows for position entry?")
 fromyear = input(2018, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
 toyear = input(2018, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
-frommonth = input(01, defval = 01, minval = 01, maxval = 12, title = "From Month")
-tomonth = input(12, defval = 12, minval = 01, maxval = 12, title = "To Month")
+frommonth = input(1, defval = 01, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(10, defval = 12, minval = 01, maxval = 12, title = "To Month")
 fromday = input(01, defval = 01, minval = 01, maxval = 31, title = "From day")
 today = input(31, defval = 31, minval = 01, maxval = 31, title = "To day")
 
@@ -44,6 +44,8 @@ WOWtrend = usewow == true ? trend1 == 1 and trend2 == 1 ? 1 : trend1 == -1 and t
 // BestMA 1.0 method
 SMAOpen = sma(open, 30)
 SMAClose = sma(close, 30)
+plot(SMAOpen, color=white)
+plot(SMAClose, color=yellow)
 BMAtrend = usebma == true ? SMAClose > SMAOpen ? 1 : SMAClose < SMAOpen ? -1 : BMAtrend[1] : 0
 
 // BarColor 1.0 method
@@ -101,6 +103,7 @@ WTOtrend = usewto == true ? tci > 0 ? 1 : tci < 0 ? -1 : 0 : 0
 
 //plots
 trends = WOWtrend + BMAtrend + BARtrend + SUPtrend + DItrend + TTStrend + RSItrend + WTOtrend
+
 pricehi = sma(high, 10)
 pricelo = sma(low, 10)
 per = usetl == 1 ? dist / 10000 : 0
@@ -168,5 +171,10 @@ shortCondition = uselocoentry ? dnloco : arr == -1
 if (shortCondition)
     strategy.entry("Short", strategy.short, na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
     
+//aaa = iff(arr == 1, 1, 0)
+//bbb = iff(arr == -1, 1, 0)
+//plotchar(6700+posi*50, color=white, location=location.absolute, char='o')
+//plotchar(6400+arr*50, color=yellow, location=location.absolute, char='o')
+
 if time > timestamp(toyear, tomonth, today, 23, 59)
     strategy.close_all()

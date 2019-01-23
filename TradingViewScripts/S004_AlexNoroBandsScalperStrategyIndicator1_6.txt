@@ -2,7 +2,7 @@
 //2018
 
 //@version=2
-study("Alex (Noro) Bands Scalper v1.6 Strategy Indicator", shorttitle = "Alex (Noro) Bands Scalper 1.6 str ind", overlay = true)
+study("S004 Alex (Noro) Bands Scalper v1.6 Strategy Indicator", shorttitle = "S004 Alex (Noro) Bands Scalper 1.6 str ind", overlay = true)
 
 openpos_size = 0.0 
 openpos_size := nz(openpos_size[1], 0.0) 

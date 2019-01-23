@@ -1,5 +1,5 @@
 //@version=3
-study(title = "Alex (Noro) Robot BitMEX Fast RSI v1.0 Indicator", shorttitle = "Alex (Noro) Robot BitMEX Fast RSI v1.0 Indicator", overlay = true)
+study(title = "S003 Alex (Noro) Robot BitMEX Fast RSI v1.0 Indicator", shorttitle = "S003 Alex (Noro) Robot BitMEX Fast RSI v1.0 Indicator", overlay = true)
 
 openpos_size = 0.0 
 openpos_size := nz(openpos_size[1], 0.0) 
