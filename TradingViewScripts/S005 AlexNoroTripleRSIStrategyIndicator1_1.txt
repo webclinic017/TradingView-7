@@ -1,0 +1,66 @@
+//@version=2
+study(title = "S005 Alex (Noro) Triple RSI v1.1 Strategy Indicator", shorttitle = "S005 Alex (Noro) 3RSI v1.1 str ind", overlay = true)
+
+openpos_size = 0.0 
+openpos_size := nz(openpos_size[1], 0.0) 
+
+//Settings
+needlong = input(true, defval = true, title = "Long")
+needshort = input(true, defval = true, title = "Short")
+leverage = input(1, defval = 1, minval = 1, maxval = 1, title = "leverage")
+accuracy = input(3, defval = 3, minval = 1, maxval = 10, title = "accuracy")
+isreversive = input(true, defval = false, title = "is reversive strategy")
+
+//RSI-2
+fastup = rma(max(change(close), 0), 2)
+fastdown = rma(-min(change(close), 0), 2)
+fastrsi = fastdown == 0 ? 100 : fastup == 0 ? 0 : 100 - (100 / (1 + fastup / fastdown))
+
+//RSI-7
+middleup = rma(max(change(close), 0), 7)
+middledown = rma(-min(change(close), 0), 7)
+middlersi = middledown == 0 ? 100 : middleup == 0 ? 0 : 100 - (100 / (1 + middleup / middledown))
+
+//RSI-14
+slowup = rma(max(change(close), 0), 14)
+slowdown = rma(-min(change(close), 0), 14)
+slowrsi = slowdown == 0 ? 100 : slowup == 0 ? 0 : 100 - (100 / (1 + slowup / slowdown))
+
+//Body
+body = abs(close - open)
+abody = sma(body, 10)
+
+//Signals
+acc = 10 - accuracy
+signalup1 = fastrsi < (5 + acc) ? 1 : 0
+signalup2 = middlersi < (10 + acc * 2) ? 1 : 0
+signalup3 = slowrsi < (15 + acc * 3) ? 1 : 0
+
+signaldn1 = fastrsi > (95 - acc) ? 1 : 0
+signaldn2 = middlersi > (90 - acc * 2) ? 1 : 0
+signaldn3 = slowrsi > (85 - acc * 3) ? 1 : 0
+
+up = signalup1 + signalup2 + signalup3 >= 3
+dn = signaldn1 + signaldn2 + signaldn3 >= 3
+exit = iff(not isreversive, ((openpos_size > 0 and close > open) or (openpos_size < 0 and close < open)) and body > abody / 3, false)
+
+dn_signal = dn
+up_signal = up
+
+//Trading 
+closelong_cond  = openpos_size > 0 and (dn_signal or not isreversive and exit)
+openshort_cond  = openpos_size >= 0 and dn_signal and needshort == true
+closeshort_cond = openpos_size < 0 and (up_signal or not isreversive and exit)
+openlong_cond   = openpos_size <= 0 and up_signal and needlong == true
+
+plotarrow(closelong_cond == true ? -1 : na, colorup=red, colordown=red, maxheight=200, minheight=200, transp=0)
+plotarrow(openshort_cond  == true ? -1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+plotarrow(closeshort_cond == true ?  1 : na, colorup=purple, colordown=purple, maxheight=200, minheight=200, transp=0)
+plotarrow(openlong_cond  == true ?  1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+
+alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='0701 - Signal to Close ALL Positions!', message='S005 Alex (Noro) Triple RSI v1.1 Strategy - Signal to Close ALL Positions!')
+alertcondition(openlong_cond  == true, title='0702 - Signal to Close ALL and Open Long Position!', message='S005 Alex (Noro) Triple RSI v1.1 Strategy - Signal to Close ALL and Open Long Position!')
+alertcondition(openshort_cond  == true, title='0703 - Signal to Close ALL and Open Short Position!', message='S005 Alex (Noro) Triple RSI v1.1 Strategy - Signal to Close ALL and Open Short Position!')
+
+openpos_size := iff(closelong_cond == true or closeshort_cond == true, 0, openpos_size)
+openpos_size := iff(openlong_cond == true, 1, iff(openshort_cond == true, -1, openpos_size))
