@@ -9,7 +9,7 @@ needlong = input(true, defval = true, title = "Long")
 needshort = input(true, defval = true, title = "Short")
 leverage = input(1, defval = 1, minval = 1, maxval = 1, title = "leverage")
 accuracy = input(3, defval = 3, minval = 1, maxval = 10, title = "accuracy")
-isreversive = input(true, defval = false, title = "is reversive strategy")
+isreversive = input(false, defval = false, title = "is reversive strategy")
 
 //RSI-2
 fastup = rma(max(change(close), 0), 2)
