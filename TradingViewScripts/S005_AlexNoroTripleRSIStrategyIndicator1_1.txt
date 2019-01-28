@@ -1,5 +1,5 @@
 //@version=2
-study(title = "S005 Alex (Noro) Triple RSI v1.1 Strategy Indicator", shorttitle = "S005 Alex (Noro) 3RSI v1.1 str ind", overlay = true)
+study(title = "S005 Alex (Noro) Triple RSI v1.1 Strategy Indicator", shorttitle = "S005 Alex (Noro) Triple RSI v1.1 str ind", overlay = true)
 
 openpos_size = 0.0 
 openpos_size := nz(openpos_size[1], 0.0) 
@@ -58,9 +58,9 @@ plotarrow(openshort_cond  == true ? -1 : na, colorup=green, colordown=yellow, ma
 plotarrow(closeshort_cond == true ?  1 : na, colorup=purple, colordown=purple, maxheight=200, minheight=200, transp=0)
 plotarrow(openlong_cond  == true ?  1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
 
-alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='0701 - Signal to Close ALL Positions!', message='S005 Alex (Noro) Triple RSI v1.1 Strategy - Signal to Close ALL Positions!')
-alertcondition(openlong_cond  == true, title='0702 - Signal to Close ALL and Open Long Position!', message='S005 Alex (Noro) Triple RSI v1.1 Strategy - Signal to Close ALL and Open Long Position!')
-alertcondition(openshort_cond  == true, title='0703 - Signal to Close ALL and Open Short Position!', message='S005 Alex (Noro) Triple RSI v1.1 Strategy - Signal to Close ALL and Open Short Position!')
+alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='S005-01 - Signal to Close ALL Positions!', message='S005 Alex (Noro) Triple RSI v1.1 Strategy - Signal to Close ALL Positions!')
+alertcondition(openlong_cond  == true, title='S005-02 - Signal to Close ALL and Open Long Position!', message='S005 Alex (Noro) Triple RSI v1.1 Strategy - Signal to Close ALL and Open Long Position!')
+alertcondition(openshort_cond  == true, title='S005-03 - Signal to Close ALL and Open Short Position!', message='S005 Alex (Noro) Triple RSI v1.1 Strategy - Signal to Close ALL and Open Short Position!')
 
 openpos_size := iff(closelong_cond == true or closeshort_cond == true, 0, openpos_size)
 openpos_size := iff(openlong_cond == true, 1, iff(openshort_cond == true, -1, openpos_size))

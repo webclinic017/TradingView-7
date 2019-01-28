@@ -169,9 +169,9 @@ plotarrow(openshort_cond  == true ? -1 : na, colordown=white, maxheight=150, min
 plotarrow(closeshort_cond == true ?  1 : na, colorup=red, maxheight=200, minheight=200, transp=0)
 plotarrow(openlong_cond  == true ?  1 : na, colorup=white, maxheight=150, minheight=130, transp=0)
 
-alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='0401 - Signal to Close ALL Positions!', message='S002 Alex (Noro) SILA v1.6.1L Strategy - Signal to Close ALL Positions!')
-alertcondition(openlong_cond  == true, title='0402 - Signal to Close Short and Open Long Position!', message='S002 Alex (Noro) SILA v1.6.1L Strategy - Signal to Close Short and Open Long Position!')
-alertcondition(openshort_cond  == true, title='0403 - Signal to Close Long and Open Short Position!', message='S002 Alex (Noro) SILA v1.6.1L Strategy - Signal to Close Long and Open Short Position!')
+alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='S002-01 - Signal to Close ALL Positions!', message='S002 Alex (Noro) SILA v1.6.1L Strategy - Signal to Close ALL Positions!')
+alertcondition(openlong_cond  == true, title='S002-02 - Signal to Close Short and Open Long Position!', message='S002 Alex (Noro) SILA v1.6.1L Strategy - Signal to Close Short and Open Long Position!')
+alertcondition(openshort_cond  == true, title='S002-03 - Signal to Close Long and Open Short Position!', message='S002 Alex (Noro) SILA v1.6.1L Strategy - Signal to Close Long and Open Short Position!')
 
 openpos_size := iff(closelong_cond == true or closeshort_cond == true, 0, openpos_size)
 openpos_size := iff(openlong_cond == true, 1, iff(openshort_cond == true, -1, openpos_size))

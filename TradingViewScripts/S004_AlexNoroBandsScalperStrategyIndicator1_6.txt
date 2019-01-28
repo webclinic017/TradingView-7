@@ -65,9 +65,9 @@ plotarrow(openshort_cond  == true ? -1 : na, colorup=green, colordown=yellow, ma
 plotarrow(closeshort_cond == true ?  1 : na, colorup=purple, colordown=purple, maxheight=200, minheight=200, transp=0)
 plotarrow(openlong_cond  == true ?  1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
 
-alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='0601 - Signal to Close ALL Positions!', message='S004 Alex (Noro) Bands Scalper v1.6 Strategy - Signal to Close ALL Positions!')
-alertcondition(openlong_cond  == true, title='0602 - Signal to Close ALL and Open Long Position!', message='S004 Alex (Noro) Bands Scalper v1.6 Strategy - Signal to Close ALL and Open Long Position!')
-alertcondition(openshort_cond  == true, title='0603 - Signal to Close ALL and Open Short Position!', message='S004 Alex (Noro) Bands Scalper v1.6 Strategy - Signal to Close ALL and Open Short Position!')
+alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='S004-01 - Signal to Close ALL Positions!', message='S004 Alex (Noro) Bands Scalper v1.6 Strategy - Signal to Close ALL Positions!')
+alertcondition(openlong_cond  == true, title='S004-02 - Signal to Close ALL and Open Long Position!', message='S004 Alex (Noro) Bands Scalper v1.6 Strategy - Signal to Close ALL and Open Long Position!')
+alertcondition(openshort_cond  == true, title='S004-03 - Signal to Close ALL and Open Short Position!', message='S004 Alex (Noro) Bands Scalper v1.6 Strategy - Signal to Close ALL and Open Short Position!')
 
 openpos_size := iff(closelong_cond == true or closeshort_cond == true, 0, openpos_size)
 openpos_size := iff(openlong_cond == true, 1, iff(openshort_cond == true, -1, openpos_size))
