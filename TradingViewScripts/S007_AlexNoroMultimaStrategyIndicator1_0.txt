@@ -1,0 +1,53 @@
+//@version=2
+study(title = "S007 Alex (Noro) Multima v1.0 Strategy Indicator", shorttitle = "S007 Alex (Noro) Multima v1.0 str ind", overlay=true)
+
+openpos_size = 0.0 
+openpos_size := nz(openpos_size[1], 0.0) 
+
+needlong = input(true, "long")
+needshort = input(true, "short")
+
+usema1 = input(true, "Use MA1 (SMA, blue)")
+usema2 = input(true, "Use MA2 (EMA, red)")
+lenma1 = input(40, defval = 40, minval = 2, maxval = 1000, title = "MA1 length")
+lenma2 = input(40, defval = 40, minval = 2, maxval = 1000, title = "MA2 length")
+usecf = input(true, defval = true, title = "Use color-filter")
+fromyear = input(2018, defval = 2018, minval = 1900, maxval = 2100, title = "From Year")
+toyear = input(2018, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
+frommonth = input(12, defval = 01, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(12, defval = 12, minval = 01, maxval = 12, title = "To Month")
+fromday = input(01, defval = 01, minval = 01, maxval = 31, title = "From day")
+today = input(31, defval = 31, minval = 01, maxval = 31, title = "To day")
+
+//Strategy
+ma1 = sma(close, lenma1)
+ma2 = ema(close, lenma2)
+signal1 = usema1 == false ? 0 : close > ma1 ? 1 : -1
+signal2 = usema2 == false ? 0 : close > ma2 ? 1 : -1
+lots = signal1 + signal2
+
+//Lines
+plot(ma1, color = blue, linewidth = 3, transp = 0)
+plot(ma2, color = red, linewidth = 3, transp = 0)
+
+dn_signal = lots < 0 and (close > open or usecf == false)
+up_signal = lots > 0 and (close < open or usecf == false)
+exit = lots == 0
+
+//Trading 
+closelong_cond  = openpos_size > 0 and (dn_signal or exit)
+openshort_cond  = openpos_size >= 0 and dn_signal and needshort == true
+closeshort_cond = openpos_size < 0 and (up_signal or exit)
+openlong_cond   = openpos_size <= 0 and up_signal and needlong == true
+
+plotarrow(closelong_cond == true ? -1 : na, colorup=red, colordown=red, maxheight=200, minheight=200, transp=0)
+plotarrow(openshort_cond  == true ? -1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+plotarrow(closeshort_cond == true ?  1 : na, colorup=purple, colordown=purple, maxheight=200, minheight=200, transp=0)
+plotarrow(openlong_cond  == true ?  1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+
+alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='S007-01 - Signal to Close ALL Positions!', message='S007 Alex (Noro) Multima v1.0 Strategy - Signal to Close ALL Positions!')
+alertcondition(openlong_cond  == true, title='S007-02 - Signal to Close ALL and Open Long Position!', message='S007 Alex (Noro) Multima v1.0 Strategy - Signal to Close ALL and Open Long Position!')
+alertcondition(openshort_cond  == true, title='S007-03 - Signal to Close ALL and Open Short Position!', message='S007 Alex (Noro) Multima v1.0 Strategy - Signal to Close ALL and Open Short Position!')
+
+openpos_size := iff(closelong_cond == true or closeshort_cond == true, 0, openpos_size)
+openpos_size := iff(openlong_cond == true, 1, iff(openshort_cond == true, -1, openpos_size))
