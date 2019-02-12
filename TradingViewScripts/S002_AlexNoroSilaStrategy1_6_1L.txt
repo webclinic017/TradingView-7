@@ -4,7 +4,7 @@
 
 //@version=2
 
-strategy(title="S002 Alex (Noro) SILA v1.6.1L Strategy", shorttitle="S002 Alex (Noro) SILA v1.6.1L str", overlay=true, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding=0, default_qty_type=strategy.percent_of_equity, default_qty_value=98)
+strategy(title="S002 Alex (Noro) SILA v1.6.1L Strategy", shorttitle="S002 Alex (Noro) SILA v1.6.1L str", overlay=true, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding=0, initial_capital=100000, default_qty_type=strategy.cash, default_qty_value=10000)
 
 //settings
 sensup = input(0, title="Uptrend-sensivity", minval = -8, maxval = 8)
@@ -25,12 +25,12 @@ usealw = input(false, title="Need background always?")
 usearr = input(true, title="Need new-trend-arrows?")
 useloco = input(true, title="Need locomotive-arrows?")
 uselocoentry = input(false, title="Use locomotive-arrows for position entry?")
-fromyear = input(2018, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
+fromyear = input(2017, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
 toyear = input(2018, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
 frommonth = input(1, defval = 01, minval = 01, maxval = 12, title = "From Month")
-tomonth = input(10, defval = 12, minval = 01, maxval = 12, title = "To Month")
-fromday = input(01, defval = 01, minval = 01, maxval = 31, title = "From day")
-today = input(31, defval = 31, minval = 01, maxval = 31, title = "To day")
+tomonth = input(6, defval = 12, minval = 01, maxval = 12, title = "To Month")
+fromday = input(1, defval = 01, minval = 01, maxval = 31, title = "From day")
+today = input(30, defval = 31, minval = 01, maxval = 31, title = "To day")
 
 // WOW 1.0 method
 lasthigh = highest(close, 30)

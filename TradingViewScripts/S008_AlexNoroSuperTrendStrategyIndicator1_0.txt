@@ -7,18 +7,11 @@ openpos_size := nz(openpos_size[1], 0.0)
 //Settings
 needlong = input(true, defval = true, title = "Long")
 needshort = input(true, defval = true, title = "Short")
-capital = input(98, defval = 98, minval = 1, maxval = 10000, title = "Lot, %")
 cloud = input(25, defval = 25, minval = 5, maxval = 50, title = "cloud, % of ATR")
 Factor = input(title = "Super Trend", defval = 3, minval = 1, maxval = 100)
 ATR = input(title = "ATR", defval = 7, minval = 1,maxval = 100)
 centr = input(true, defval = true, title = "need center of ATR?")
 border = input(false, defval = false, title = "need border?")
-fromyear = input(2018, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
-toyear = input(2018, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
-frommonth = input(11, defval = 01, minval = 01, maxval = 12, title = "From Month")
-tomonth = input(12, defval = 12, minval = 01, maxval = 12, title = "To Month")
-fromday = input(01, defval = 01, minval = 01, maxval = 31, title = "From day")
-today = input(31, defval = 31, minval = 01, maxval = 31, title = "To day")
 
 //Super Trend ATR 1
 src = close

@@ -2,7 +2,7 @@
 //2018
 
 //@version=2
-strategy("S004 Alex (Noro) Bands Scalper v1.6 Strategy", shorttitle = "S004 Alex (Noro) Bands Scalper 1.6 str", overlay = true, commission_type=strategy.commission.percent, commission_value=0.15, default_qty_type = strategy.percent_of_equity, default_qty_value = 98.0, pyramiding = 0)
+strategy("S004 Alex (Noro) Bands Scalper v1.6 Strategy", shorttitle = "S004 Alex (Noro) Bands Scalper 1.6 str", overlay = true, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding = 0, initial_capital=100000, default_qty_type=strategy.cash, default_qty_value=10000)
 
 //Settings
 needlong = input(true, defval = true, title = "Long")
@@ -15,12 +15,12 @@ trb = input(1, defval = 1, minval = 1, maxval = 5, title = "Trend bars")
 len = input(20, defval = 20, minval = 2, maxval = 200, title = "Period")
 needbb = input(true, defval = true, title = "Show Bands")
 needbg = input(true, defval = true, title = "Show Background")
-fromyear = input(2018, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
+fromyear = input(2017, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
 toyear = input(2018, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
-frommonth = input(10, defval = 01, minval = 01, maxval = 12, title = "From Month")
-tomonth = input(10, defval = 12, minval = 01, maxval = 12, title = "To Month")
+frommonth = input(1, defval = 01, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(6, defval = 12, minval = 01, maxval = 12, title = "To Month")
 fromday = input(1, defval = 01, minval = 01, maxval = 31, title = "From Day")
-today = input(31, defval = 31, minval = 01, maxval = 31, title = "To Day")
+today = input(30, defval = 31, minval = 01, maxval = 31, title = "To Day")
 src = close
 
 //PriceChannel 1
