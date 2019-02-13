@@ -1,5 +1,5 @@
 //@version=2
-strategy("S008 Alex (Noro) SuperTrend v1.0 Strategy", shorttitle = "S008 Alex (Noro) SuperTrend str 1.0", overlay = true, initial_capital=100000, default_qty_type=strategy.cash, default_qty_value=10000, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding = 0)
+strategy("S008 Alex (Noro) SuperTrend v1.0 Strategy", shorttitle = "S008 Alex (Noro) SuperTrend str 1.0", overlay = true, initial_capital=100000, default_qty_type=strategy.cash, default_qty_value=98000, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding = 0)
 
 //Settings
 needlong = input(true, defval = true, title = "Long")

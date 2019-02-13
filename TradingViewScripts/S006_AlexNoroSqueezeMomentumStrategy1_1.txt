@@ -1,5 +1,5 @@
 //@version=2
-strategy(shorttitle = "S006 Alex (Noro) Squeeze Momentum 1.1 str", title="S006 Alex (Noro) Squeeze Momentum v1.1 Strategy", overlay = false, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding = 0, initial_capital=100000, default_qty_type=strategy.cash, default_qty_value=10000)
+strategy(shorttitle = "S006 Alex (Noro) Squeeze Momentum 1.1 str", title="S006 Alex (Noro) Squeeze Momentum v1.1 Strategy", overlay = false, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding = 0, initial_capital=100000, default_qty_type=strategy.cash, default_qty_value=98000)
 
 //Settings
 needlong = input(true, defval = true, title = "Long")
