@@ -1,5 +1,5 @@
 //@version=2
-strategy(title = "S005 Alex (Noro) Triple RSI v1.1 Strategy", shorttitle = "S005 Alex (Noro) 3RSI v1.1 strat", overlay = true, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding = 0, initial_capital=100000, default_qty_type=strategy.cash, default_qty_value=98000)
+strategy(title = "S005 Alex (Noro) Triple RSI v1.1 Strategy", shorttitle = "S005 Alex (Noro) 3RSI v1.1 strat", overlay = true, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding = 0, initial_capital=100000, default_qty_type=strategy.cash, default_qty_value=10000)
 
 //Settings
 needlong = input(true, defval = true, title = "Long")
