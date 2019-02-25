@@ -3,8 +3,6 @@ study(title = "S003 Alex (Noro) Robot BitMEX Fast RSI v1.0 Indicator", shorttitl
 
 openpos_size = 0.0 
 openpos_size := nz(openpos_size[1], 0.0) 
-openpos_avg_price = 0.0
-openpos_avg_price := nz(openpos_avg_price[1], 0.0) 
 
 //Settings
 needlong = input(true, defval = true, title = "Long")
@@ -44,8 +42,8 @@ openrbarok = sma(rbar, openbars) == 1 or useocf == false
 closegbarok = sma(gbar, closebars) == 1 or useccf == false
 closerbarok = sma(rbar, closebars) == 1 or useccf == false
 //Signals
-up = openrbarok and rsidnok and openbodyok and (openpos_size == 0 or close < openpos_avg_price)
-dn = opengbarok and rsiupok and openbodyok and (openpos_size == 0 or close > openpos_avg_price)
+up = openrbarok and rsidnok and openbodyok and openpos_size == 0
+dn = opengbarok and rsiupok and openbodyok and openpos_size == 0
 exit = ((openpos_size > 0 and closegbarok and rsi > rsilong) or (openpos_size < 0 and closerbarok and rsi < rsishort)) and closebodyok
 
 dn_signal = dn
@@ -68,4 +66,3 @@ alertcondition(openshort_cond  == true, title='S003-03 - Signal to Close ALL and
 
 openpos_size := iff(closelong_cond == true or closeshort_cond == true, 0, openpos_size)
 openpos_size := iff(openlong_cond == true, 1, iff(openshort_cond == true, -1, openpos_size))
-openpos_avg_price := iff(openlong_cond == true or openshort_cond == true, close, openpos_avg_price)

@@ -7,7 +7,7 @@ openpos_size := nz(openpos_size[1], 0.0)
 //Settings
 needlong = input(true, defval = true, title = "Long")
 needshort = input(true, defval = true, title = "Short")
-leverage = input(1, defval = 1, minval = 1, maxval = 1, title = "leverage")
+indi = input(3, defval = 3, minval = 1, maxval = 3, title = "Indicators")
 accuracy = input(3, defval = 3, minval = 1, maxval = 10, title = "accuracy")
 isreversive = input(false, defval = false, title = "is reversive strategy")
 
@@ -40,8 +40,8 @@ signaldn1 = fastrsi > (95 - acc) ? 1 : 0
 signaldn2 = middlersi > (90 - acc * 2) ? 1 : 0
 signaldn3 = slowrsi > (85 - acc * 3) ? 1 : 0
 
-up = signalup1 + signalup2 + signalup3 >= 3
-dn = signaldn1 + signaldn2 + signaldn3 >= 3
+up = signalup1 + signalup2 + signalup3 >= indi
+dn = signaldn1 + signaldn2 + signaldn3 >= indi
 exit = iff(not isreversive, ((openpos_size > 0 and close > open) or (openpos_size < 0 and close < open)) and body > abody / 3, false)
 
 dn_signal = dn

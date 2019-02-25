@@ -45,8 +45,8 @@ closegbarok = sma(gbar, closebars) == 1 or useccf == false
 closerbarok = sma(rbar, closebars) == 1 or useccf == false
 //Signals
 size = strategy.position_size
-up = openrbarok and rsidnok and openbodyok and (size == 0 or close < strategy.position_avg_price)
-dn = opengbarok and rsiupok and openbodyok and (size == 0 or close > strategy.position_avg_price)
+up = openrbarok and rsidnok and openbodyok and size == 0
+dn = opengbarok and rsiupok and openbodyok and size == 0
 exit = ((size > 0 and closegbarok and rsi > rsilong) or (size < 0 and closerbarok and rsi < rsishort)) and closebodyok
 
 //Indicator
