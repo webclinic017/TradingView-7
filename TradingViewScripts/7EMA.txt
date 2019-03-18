@@ -1,0 +1,37 @@
+//@version=3
+study(title="7 EMA", shorttitle="7 EMA", overlay=true)
+len1 = input(8, minval=1, title="Length1")
+len2 = input(13, minval=1, title="Length2")
+len3 = input(21, minval=1, title="Length3")
+len4 = input(55, minval=1, title="Length4")
+len5 = input(200, minval=1, title="Length5")
+len6 = input(200, minval=1, title="Length6")
+len7 = input(200, minval=1, title="Length7")
+
+
+
+src1 = input(close, title="Source1")
+src2 = input(close, title="Source2")
+src3 = input(close, title="Source3")
+src4 = input(close, title="Source4")
+src5 = input(close, title="Source5")
+src6 = input(close, title="Source6")
+src7 = input(close, title="Source7")
+
+
+ema1 = ema(src1, len1)
+ema2 = ema(src2, len2)
+ema3 = ema(src3, len3)
+ema4 = ema(src4, len4)
+ema5 = ema(src5, len5)
+ema6 = ema(src6, len6)
+ema7 = ema(src7, len7)
+
+
+plot(ema1, color=#ff00ffff, linewidth=2, title="MA1")
+plot(ema2, color=#00ffffff, linewidth=2, title="MA2")
+plot(ema3, color=#ff9800ff, linewidth=2, title="MA3")
+plot(ema4, color=#ffff00ff, linewidth=2, title="MA4")
+plot(ema5, color=#ffffffff, linewidth=2, title="MA5")
+//plot(ema6, color=purple, linewidth=2, title="MA6")
+//plot(ema7, color=lime, linewidth=2, title="MA7")

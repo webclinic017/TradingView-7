@@ -1,0 +1,57 @@
+//@version=3
+study(title="S011 EMA CrossOver v1.0 Strategy Indicator", shorttitle = "S011 EMA CrossOver v1.0 str ind", overlay=true) 
+  
+//////////////////////////////////////////////////////////////
+// **************** S011 EMA CrossOver Strategy Indicator - v1.0 *********************
+////////////////////////////////////////////////////////////// 
+
+openPositionSize = 0.0 
+openPositionSize := nz(openPositionSize[1], 0.0)
+
+needlong = input(true, defval = true, title = "Long")
+needshort = input(true, defval = true, title = "Short")
+ema_ratio = input(0.5, defval = 0.5, minval = 0.01, maxval = 0.99, title = "EMA Fast/Slow Period Ratio")
+slow_ema_period = input(200, defval = 200, minval = 60, maxval = 400, title = "Slow EMA Period")
+debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
+
+fast_ema_period = round(ema_ratio * slow_ema_period)
+fastEMA = ema(close, fast_ema_period)
+slowEMA = ema(close, slow_ema_period)
+
+isLongPositionOpen() =>
+    openPositionSize > 0
+
+isShortPositionOpen() =>
+    openPositionSize < 0
+    
+isEmaCrossover(firstEMA, secondEMA) =>
+    not na(firstEMA) and not na(secondEMA) and crossover(firstEMA, secondEMA)
+
+// Calculate signal to determine whether eligible to open a new position
+openLongPositionCriteria = isEmaCrossover(fastEMA, slowEMA)
+openShortPositionCriteria = isEmaCrossover(slowEMA, fastEMA)
+signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, na)) 
+
+//plotchar(debugSignalLine+sss*debugSignalLine*0.03, color=#00ff00ff, location=location.absolute, char='o')
+//plotchar(debugSignalLine + sss, color=#ff0000ff, location=location.absolute, char='o')
+
+//Signals
+up = signalOpenPosition == 1
+dn = signalOpenPosition == -1
+ 
+//Trading
+closelong_cond  = openPositionSize > 0 and dn
+openshort_cond  = openPositionSize >= 0 and dn and needshort == true
+closeshort_cond = openPositionSize < 0 and up
+openlong_cond   = openPositionSize <= 0 and up and needlong == true
+
+plotarrow(closelong_cond  == true ? -1 : na, colorup=red, colordown=red, maxheight=200, minheight=200, transp=0)
+plotarrow(openshort_cond  == true ? -1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+plotarrow(closeshort_cond == true ?  1 : na, colorup=purple, colordown=purple, maxheight=200, minheight=200, transp=0)
+plotarrow(openlong_cond   == true ?  1 : na, colorup=green, colordown=yellow, maxheight=150, minheight=130, transp=0)
+
+alertcondition(closelong_cond == true and openshort_cond  == false or closeshort_cond == true and openlong_cond  == false, title='S011-01 - Signal to Close ALL Positions!', message='S011 EMA CrossOver v1.0 Strategy - Signal to Close ALL Positions!')
+alertcondition(openlong_cond  == true, title='S011-02 - Signal to Close ALL and Open Long Position!', message='S011 EMA CrossOver v1.0 Strategy - Signal to Close ALL and Open Long Position!')
+alertcondition(openshort_cond  == true, title='S011-03 - Signal to Close ALL and Open Short Position!', message='S011 EMA CrossOver v1.0 Strategy - Signal to Close ALL and Open Short Position!')
+
+openPositionSize := iff(signalOpenPosition == 1, 1, iff(signalOpenPosition == -1, -1, openPositionSize))

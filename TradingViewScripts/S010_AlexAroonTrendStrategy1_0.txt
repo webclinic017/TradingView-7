@@ -1,0 +1,71 @@
+//@version=3
+strategy("S010 Alex Aroon Trend v1.0 Strategy", shorttitle = "S010 Alex Aroon Trend v1.0 str", overlay=true, initial_capital=100000, default_qty_type=strategy.cash, default_qty_value=10000, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding = 0) 
+  
+//////////////////////////////////////////////////////////////
+// **************** S010 Alex Aroon Trend Strategy - v1.0 *********************
+////////////////////////////////////////////////////////////// 
+
+openPositionSize = 0.0 
+openPositionSize := nz(openPositionSize[1], 0.0)
+
+needlong = input(true, defval = true, title = "Long")
+needshort = input(true, defval = true, title = "Short")
+aroon_length = input(200, minval=1)
+cross_r1_start = input(20, minval=1, maxval=90)
+cross_r1_end = input(80, minval=1, maxval=90)
+cross_r2_start = input(90, minval=80, maxval=100)
+cross_r2_end = input(100, minval=80, maxval=100)
+fromyear = input(2010, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
+toyear = input(2100, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
+frommonth = input(1, defval = 01, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(12, defval = 12, minval = 01, maxval = 12, title = "To Month")
+fromday = input(1, defval = 01, minval = 01, maxval = 31, title = "From day")
+today = input(31, defval = 31, minval = 01, maxval = 31, title = "To day")
+debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
+
+isLongPositionOpen() =>
+    openPositionSize > 0
+
+isShortPositionOpen() =>
+    openPositionSize < 0 
+
+inRange(value, minV, maxV) =>
+    value >= minV and value <= maxV
+
+aroon_upper = 100 * (highestbars(high, aroon_length+1) + aroon_length)/aroon_length
+aroon_lower = 100 * (lowestbars(low, aroon_length+1) + aroon_length)/aroon_length
+
+openLongCondition = iff(openPositionSize == 0 and crossover(aroon_upper, aroon_lower) and inRange(aroon_lower, cross_r1_start,  cross_r1_end) and inRange(aroon_upper, cross_r2_start, cross_r2_end), true, false)
+openShortCondition = iff(openPositionSize == 0 and crossover(aroon_lower, aroon_upper) and inRange(aroon_upper, cross_r1_start,  cross_r1_end) and inRange(aroon_lower, cross_r2_start, cross_r2_end), true, false)
+closeLongCondition = iff(openPositionSize == 1 and crossover(aroon_lower, aroon_upper), true, false)
+closeShortCondition = iff(openPositionSize == -1 and crossover(aroon_upper, aroon_lower), true, false)
+
+// bbb = iff(isTrailingTakeProfitActivated, 1, 0)
+// ccc = iff(isTrailingTakeProfitCloseCondition(), 1, 0)
+// plotchar(0.000082+bbb*0.0000005, color=#ffffffff, location=location.absolute, char='o')
+// plotchar(0.000084+ccc*0.0000005, color=#ff0000ff, location=location.absolute, char='o')
+//plotchar(iff(trailingTakeProfitDistance > 0, 0.068+trailingTakeProfitDistance*close/100, 0), color=#ffffffff, location=location.absolute, char='o')
+
+if(openLongCondition == true)
+    openPositionSize := 1
+
+if(openShortCondition == true)
+    openPositionSize := -1
+
+if(closeLongCondition == true or closeShortCondition == true)
+    openPositionSize := 0
+
+//Signals
+up = openLongCondition == true
+dn = openShortCondition == true
+exit = closeLongCondition == true or closeShortCondition == true
+ 
+//Trading
+if up
+    strategy.entry("Long", strategy.long, needlong == false ? 0 : na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+
+if dn
+    strategy.entry("Short", strategy.short, needshort == false ? 0 : na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+    
+if time > timestamp(toyear, tomonth, today, 23, 59) or exit
+    strategy.close_all()

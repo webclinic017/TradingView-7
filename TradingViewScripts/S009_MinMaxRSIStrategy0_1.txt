@@ -1,0 +1,114 @@
+//@version=3
+strategy("S009 Min/Max RSI Strategy v0.1", shorttitle = "S009 Min/Max RSI str 0.1", overlay=true, initial_capital=100000, default_qty_type=strategy.cash, default_qty_value=10000, commission_type=strategy.commission.percent, commission_value=0.15, pyramiding = 0) 
+  
+//////////////////////////////////////////////////////////////
+// **************** S009 Min/Max RSI Strategy - v0.1 *********************
+////////////////////////////////////////////////////////////// 
+
+preOpenLongFlag = false
+preOpenLongFlag := nz(preOpenLongFlag[1], false) 
+preOpenShortFlag = false
+preOpenShortFlag := nz(preOpenShortFlag[1], false)  
+preCloseLongFlag = false
+preCloseLongFlag := nz(preCloseLongFlag[1], false)   
+preCloseShortFlag = false
+preCloseShortFlag := nz(preCloseShortFlag[1], false) 
+openPositionSize = 0.0 
+openPositionSize := nz(openPositionSize[1], 0.0)
+ 
+needlong = input(true, defval = true, title = "Long")
+needshort = input(true, defval = true, title = "Short")
+rsiPeriod = input(title="RSI Period", type=integer, defval=14)
+rsiLongOpenValue = input(title="RSI Long Open Value", type=integer, defval=28)
+rsiLongCloseValue = input(title="RSI Long Close Value", type=integer, defval=69)
+rsiShortOpenValue = input(title="RSI Short Open Value", type=integer, defval=72)
+rsiShortCloseValue = input(title="RSI Short Close Value", type=integer, defval=31)
+fromyear = input(2017, defval = 1900, minval = 1900, maxval = 2100, title = "From Year")
+toyear = input(2100, defval = 2100, minval = 1900, maxval = 2100, title = "To Year")
+frommonth = input(1, defval = 01, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(12, defval = 12, minval = 01, maxval = 12, title = "To Month")
+fromday = input(1, defval = 01, minval = 01, maxval = 31, title = "From day")
+today = input(31, defval = 31, minval = 01, maxval = 31, title = "To day")
+debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
+
+rsiVal = rsi(close, rsiPeriod)
+
+isPreOpenLong() =>
+    preOpenLongFlag == true
+    
+isPreOpenShort() =>
+    preOpenShortFlag == true
+    
+isPreCloseLong() =>
+    preCloseLongFlag == true
+    
+isPreCloseShort() =>
+    preCloseShortFlag == true
+    
+isPositionClosed() =>
+    openPositionSize == 0
+
+isLongPositionOpen() =>
+    openPositionSize > 0
+
+isShortPositionOpen() =>
+    openPositionSize < 0
+    
+isRsiEnteredBelowLevel(level) =>
+    rsiVal[1] > level and rsiVal <= level
+
+isRsiEnteredAboveLevel(level) =>
+    rsiVal[1] < level and rsiVal >= level 
+    
+hasReachedLongPositionTarget() =>
+    isPreCloseLong() and isRsiEnteredBelowLevel(rsiLongCloseValue)
+
+hasReachedShortPositionTarget() =>
+    isPreCloseShort() and isRsiEnteredAboveLevel(rsiShortCloseValue)
+
+if time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)
+    // Determine if pre-open criteria is met and set the flag
+    preOpenLongFlag := iff(isPositionClosed() and not isPreOpenLong() and isRsiEnteredBelowLevel(rsiLongOpenValue), true, preOpenLongFlag) 
+    preOpenShortFlag := iff(isPositionClosed() and not isPreOpenShort() and isRsiEnteredAboveLevel(rsiShortOpenValue), true, preOpenShortFlag)
+    // Determine if pre-close criteria is met and set the flag
+    preCloseLongFlag := iff(isLongPositionOpen() and not isPreCloseLong() and isRsiEnteredAboveLevel(rsiLongCloseValue), true, preCloseLongFlag)
+    preCloseShortFlag := iff(isShortPositionOpen() and not isPreCloseShort() and isRsiEnteredBelowLevel(rsiShortCloseValue), true, preCloseShortFlag)
+
+    // Calculate signal to determine whether eligible to open a new position
+    openLongPositionCriteria = isPositionClosed() and isPreOpenLong() and isRsiEnteredAboveLevel(rsiLongOpenValue)
+    openShortPositionCriteria = isPositionClosed() and isPreOpenShort() and isRsiEnteredBelowLevel(rsiShortOpenValue)
+    signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, na)) 
+    // Calculate signal to determine whether eligible to close existing position
+    closeLongPositionCriteria = isLongPositionOpen() and hasReachedLongPositionTarget()
+    closeShortPositionCriteria = isShortPositionOpen() and hasReachedShortPositionTarget()
+    signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na)) 
+
+    //plotchar(debugSignalLine+sss*debugSignalLine*0.03, color=#00ff00ff, location=location.absolute, char='o')
+    //plotchar(debugSignalLine*1.1+signalClosePosition*debugSignalLine*0.03, color=#ff0000ff, location=location.absolute, char='o')
+
+    openPositionSize := iff(signalOpenPosition == 1, 1, iff(signalOpenPosition == -1, -1, openPositionSize))
+    openPositionSize := iff(signalClosePosition == 1 or signalClosePosition == -1, 0, openPositionSize)
+    
+    if(signalClosePosition == 1 or signalClosePosition == -1)
+        preOpenLongFlag   := false
+        preOpenShortFlag  := false
+        preCloseLongFlag  := false
+        preCloseShortFlag := false
+
+    //Signals
+    up = signalOpenPosition == 1
+    dn = signalOpenPosition == -1
+    exit = signalClosePosition == -1 or signalClosePosition == 1
+
+    //Trading
+    if up
+        strategy.entry("Long", strategy.long, needlong == false ? 0 : na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+
+    if dn
+        strategy.entry("Short", strategy.short, needshort == false ? 0 : na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+    
+    if exit
+        strategy.close_all()
+    
+if time > timestamp(toyear, tomonth, today, 23, 59)
+    strategy.close_all()
