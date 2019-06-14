@@ -29,8 +29,8 @@ inRange(value, minV, maxV) =>
 aroon_upper = 100 * (highestbars(high, aroon_length+1) + aroon_length)/aroon_length
 aroon_lower = 100 * (lowestbars(low, aroon_length+1) + aroon_length)/aroon_length
 
-openLongCondition = iff(openPositionSize == 0 and crossover(aroon_upper, aroon_lower) and inRange(aroon_lower, cross_r1_start,  cross_r1_end) and inRange(aroon_upper, cross_r2_start, cross_r2_end), true, false)
-openShortCondition = iff(openPositionSize == 0 and crossover(aroon_lower, aroon_upper) and inRange(aroon_upper, cross_r1_start,  cross_r1_end) and inRange(aroon_lower, cross_r2_start, cross_r2_end), true, false)
+openLongCondition = iff(openPositionSize == 0 and aroon_upper > aroon_lower and inRange(aroon_lower, cross_r1_start,  cross_r1_end) and inRange(aroon_upper, cross_r2_start, cross_r2_end), true, false)
+openShortCondition = iff(openPositionSize == 0 and aroon_upper < aroon_lower and inRange(aroon_upper, cross_r1_start,  cross_r1_end) and inRange(aroon_lower, cross_r2_start, cross_r2_end), true, false)
 closeLongCondition = iff(openPositionSize == 1 and crossover(aroon_lower, aroon_upper), true, false)
 closeShortCondition = iff(openPositionSize == -1 and crossover(aroon_upper, aroon_lower), true, false)
 

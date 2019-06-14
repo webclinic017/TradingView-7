@@ -1,0 +1,33 @@
+//Noro
+//2019
+
+//@version=3
+study("Noro's Multi-exchange Volume", shorttitle = "ME Volume", overlay = false)
+
+//Settings
+ex1 = input("bitfinex:btcusd", title = "Exchange 1")
+ex2 = input("binance:btcusdt", title = "Exchange 2")
+ex3 = input("huobi:btcusdt", title = "Exchange 3")
+ex4 = input("hitbtc:btcusdt", title = "Exchange 4")
+ex5 = input("coinbase:btcusd", title = "Exchange 5")
+showab = input(false, title = "Absolute")
+showma = input(false, title = "Show Average Line")
+mult = input(1.0, defval = 1.0, minval = 1, maxval = 100, title = "Average Line Mult")
+
+//Volume
+v1 = ex1 == "" ? 0 : security(ex1, period, close > close[1] ? volume : -1 * volume)
+v2 = ex2 == "" ? 0 : security(ex2, period, close > close[1] ? volume : -1 * volume)
+v3 = ex3 == "" ? 0 : security(ex3, period, close > close[1] ? volume : -1 * volume)
+v4 = ex4 == "" ? 0 : security(ex4, period, close > close[1] ? volume : -1 * volume)
+v5 = ex5 == "" ? 0 : security(ex5, period, close > close[1] ? volume : -1 * volume)
+sum = v1 + v2 + v3 + v4 + v5
+
+//Avg
+sma = sma(abs(sum), 20) * mult
+colma = showma ? blue : na
+plot(sma, color = colma, transp = 0)
+
+//Columns
+col = sum > 0 ? green : red
+ind = showab ? abs(sum) : sum
+plot(ind, color = col, style = columns, linewidth = 3, transp = 0)
