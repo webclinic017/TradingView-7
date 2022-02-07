@@ -1,0 +1,70 @@
+//@version=3
+strategy("S013 Custom EMA CT v1.0 Strategy", shorttitle = "S013 Custom EMA CT v1.0 str", overlay=true, initial_capital=1500, default_qty_type=strategy.cash, default_qty_value=1470, commission_type=strategy.commission.percent, commission_value=0.03, pyramiding = 0) 
+  
+////////////////////////////////////////////////////////////////////////////
+// **************** S013 Custom EMA Strategy - v1.0 ********************* //
+////////////////////////////////////////////////////////////////////////////
+
+openPositionSize = 0.0 
+openPositionSize := nz(openPositionSize[1], 0.0)
+
+needlong = input(true, title = "Long")
+needshort = input(true, title = "Short")
+long_ema_period = input(12, minval = 2, maxval = 999, title = "Long EMA Period")
+short_ema_period = input(3, minval = 2, maxval = 999, title = "Short EMA Period")
+ema_diff_pct_filter = input(0.1, title = "EMA Diff Filter, %")
+fromyear = input(2022, minval = 1900, maxval = 2100, title = "From Year")
+toyear = input(2100, minval = 1900, maxval = 2100, title = "To Year")
+frommonth = input(1, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(12, minval = 01, maxval = 12, title = "To Month")
+fromday = input(1, minval = 01, maxval = 31, title = "From day")
+today = input(31, minval = 01, maxval = 31, title = "To day")
+debugSignalLine = input(title="Debug Signal Line", type=float, defval=7000)
+
+longEMA = ema(ohlc4, long_ema_period)
+shortEMA = ema(ohlc4, short_ema_period)
+ema_diff = shortEMA - longEMA
+ema_diff_pct = 100 * ema_diff / close
+
+plot(longEMA, color=#FFFFFFFF, linewidth=3)
+plot(shortEMA, color=#FFFF00FF, linewidth=3)
+plot(ema_diff_pct, color=#FF0000FF)
+
+
+isLongPositionOpen() =>
+    openPositionSize > 0
+
+isShortPositionOpen() =>
+    openPositionSize < 0
+
+// Calculate signal to determine whether eligible to open a new position
+openLongPositionCriteria = ema_diff_pct < 0 and ema_diff_pct[1] < 0 and abs(ema_diff_pct) < abs(ema_diff_pct[1]) and abs(ema_diff_pct[1]) > ema_diff_pct_filter
+openShortPositionCriteria = ema_diff_pct > 0 and ema_diff_pct[1] > 0 and ema_diff_pct < ema_diff_pct[1] and ema_diff_pct[1] > ema_diff_pct_filter
+signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, na)) 
+
+// Calculate signal to determine whether eligible to close existing position
+closeLongPositionCriteria = isLongPositionOpen() and close[1] < longEMA[1] and close > longEMA
+closeShortPositionCriteria = isShortPositionOpen() and close[1] > longEMA[1] and close < longEMA
+signalClosePosition = iff(closeLongPositionCriteria == true, -1 , iff(closeShortPositionCriteria == true, 1, na)) 
+
+//plotchar(debugSignalLine+sss*debugSignalLine*0.03, color=#00ff00ff, location=location.absolute, char='o')
+//plotchar(debugSignalLine + sss, color=#ff0000ff, location=location.absolute, char='o')
+
+openPositionSize := iff(signalOpenPosition == 1, 1, iff(signalOpenPosition == -1, -1, openPositionSize))
+openPositionSize := iff(signalClosePosition == 1 or signalClosePosition == -1, 0, openPositionSize)
+
+//Signals
+up = signalOpenPosition == 1
+dn = signalOpenPosition == -1
+
+exit = signalClosePosition == -1 or signalClosePosition == 1
+ 
+//Trading
+if up
+    strategy.entry("Long", strategy.long, needlong == false ? 0 : na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+
+if dn
+    strategy.entry("Short", strategy.short, needshort == false ? 0 : na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+    
+if time > timestamp(toyear, tomonth, today, 23, 59) or exit
+    strategy.close_all()

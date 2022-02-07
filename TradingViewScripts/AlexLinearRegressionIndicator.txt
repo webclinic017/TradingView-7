@@ -1,0 +1,199 @@
+//@version=4
+study("Alex - Linear Regression", shorttitle="Alex LinReg", overlay=true, precision=8)
+
+upperMult = input(title="Upper Deviation", defval=2)
+lowerMult = input(title="Lower Deviation", defval=-2)
+
+useUpperDev = input(title="Use Upper Deviation", defval=false)
+useLowerDev = input(title="Use Lower Deviation", defval=false)
+showPearson = input(title="Show Pearson's R", defval=true)
+extendLines = input(title="Extend Lines", defval=false)
+
+flat_market_threshold_val = input(title="Flat Market Threshold", defval=24)
+
+len = input(title="Count", defval=5)
+src = input(title="Source", defval=ohlc4)
+ma_val = ema(src, 20)
+plot(ma_val, color=color.orange, linewidth=2)
+src := ma_val
+
+extend = extendLines ? extend.right : extend.none
+
+calcR(src, len) =>
+    r = 0.0
+    
+    avgX = (1 + len) / 2
+    avgY = 0.0
+    for i = len - 1 to 0 
+        avgY := avgY + src[i]
+    avgY := avgY / len
+    c11 = 0.0
+    c12 = 0.0
+    c21 = 0.0
+    c22 = 0.0
+    for i = len - 1 to 0
+        idx = -i + len
+        x_avg = idx - avgX
+        y_avg = src[i] - avgY
+        c11 := c11 + x_avg * x_avg
+        c12 := c12 + x_avg * y_avg
+        c21 := c21 + y_avg * x_avg
+        c22 := c22 + y_avg * y_avg
+    c11 := c11 / len
+    c12 := c12 / len
+    c21 := c21 / len
+    c22 := c22 / len
+    ssxm  = c11
+    ssxym = c12
+    ssyxm = c21
+    ssym  = c22
+    r_num = ssxym
+    r_den = sqrt(ssxm * ssym)
+    if r_den == 0.0
+        r := 0.0
+    else
+        r := r_num / r_den
+        if r > 1.0
+            r := 1.0
+        if r < -1.0
+            r := -1.0
+    r
+
+newR = calcR(src, len)
+
+
+get_sqrt_sum_val_pow_2(len, use_index) =>
+    sum_val_pow_2 = 0.0
+    index = 1.0
+    for i = len - 1 to 0 
+        X = use_index ? index : close[i]
+        sum_val_pow_2 := sum_val_pow_2 + X * X
+        index := index + 1.0
+    sqrt(sum_val_pow_2) 
+
+
+calcSlope(src, len) =>
+    sumX = 0.0
+    norm_sumX = 0.0
+    sumY = 0.0
+    norm_sumY = 0.0
+    sumXSqr = 0.0
+    norm_sumXSqr = 0.0
+    sumXY = 0.0
+    norm_sumXY = 0.0
+    per = 0.0
+    norm_per = 0.0
+    sqrt_sum_X_pow_2 = get_sqrt_sum_val_pow_2(len, true)
+    sqrt_sum_Y_pow_2 = get_sqrt_sum_val_pow_2(len, false)
+    for i = len - 1 to 0 
+        val = src[i]
+        norm_val = val / sqrt_sum_Y_pow_2
+        per := per + 1.0
+        norm_per := per / sqrt_sum_X_pow_2
+        sumX := sumX + per
+        norm_sumX := norm_sumX + norm_per
+        sumY := sumY + val
+        norm_sumY := norm_sumY + norm_val
+        sumXSqr := sumXSqr + per * per
+        norm_sumXSqr := norm_sumXSqr + norm_per * norm_per            
+        sumXY := sumXY + val * per            
+        norm_sumXY := norm_sumXY + norm_val * norm_per
+        
+    slope = (len * sumXY - sumX * sumY) / (len * sumXSqr - sumX * sumX)
+    norm_slope = (len * norm_sumXY - norm_sumX * norm_sumY) / (len * norm_sumXSqr - norm_sumX * norm_sumX)
+    angle = 180 * atan(norm_slope) / 3.1415926
+    average = sumY / len
+    intercept = average - slope * sumX / len + slope
+    [angle, norm_slope, slope, average, intercept]
+
+[angle, ns, s, a, intercept] = calcSlope(src, len)
+
+startPrice = intercept
+endPrice = intercept + s * (len - 1)
+var line baseLine = na
+
+if na(baseLine) and not na(startPrice)
+    baseLine := line.new(bar_index - len + 1, startPrice, bar_index, endPrice, width=1, extend=extend, color=color.red)
+else
+    line.set_xy1(baseLine, bar_index - len + 1, startPrice)
+    line.set_xy2(baseLine, bar_index, endPrice)
+    na
+
+calcDev(src, len, slope, average, intercept) =>
+    upDev = 0.0
+    dnDev = 0.0
+    stdDevAcc = 0.0
+    dsxx = 0.0
+    dsyy = 0.0
+    dsxy = 0.0
+
+    periods = len - 1
+
+    daY = intercept + (slope * periods) / 2
+    val = intercept
+
+    for ii = periods to 0
+        price = high[ii] - val
+        if (price > upDev)
+            upDev := price
+
+        price := val - low[ii]
+        if (price > dnDev)
+            dnDev := price
+
+        price := src[ii]
+        dxt = price - average
+        dyt = val - daY
+
+        price := price - val
+        stdDevAcc := stdDevAcc + price * price
+        dsxx := dsxx + dxt * dxt
+        dsyy := dsyy + dyt * dyt
+        dsxy := dsxy + dxt * dyt
+        val := val + slope
+
+    stdDev = sqrt(stdDevAcc / (periods == 0 ? 1 : periods))
+    pearsonR = dsxx == 0 or dsyy == 0 ? 0 : dsxy / sqrt(dsxx * dsyy)
+    [stdDev, pearsonR, upDev, dnDev]
+
+[stdDev, pearsonR, upDev, dnDev] = calcDev(src, len, s, a, intercept)
+
+upperStartPrice = startPrice + (useUpperDev ? upperMult * stdDev : upDev)
+upperEndPrice = endPrice + (useUpperDev ? upperMult * stdDev : upDev)
+var line upper = na
+
+lowerStartPrice = startPrice + (useLowerDev ? lowerMult * stdDev : -dnDev)
+lowerEndPrice = endPrice + (useLowerDev ? lowerMult * stdDev : -dnDev)
+var line lower = na
+
+if na(upper) and not na(upperStartPrice)
+    tmp = 1 // upper := line.new(bar_index - len + 1, upperStartPrice, bar_index, upperEndPrice, width=1, extend=extend, color=#0000ff)
+else
+    line.set_xy1(upper, bar_index - len + 1, upperStartPrice)
+    line.set_xy2(upper, bar_index, upperEndPrice)
+    na
+
+if na(lower) and not na(lowerStartPrice)
+    tmp2 = 1 //lower := line.new(bar_index - len + 1, lowerStartPrice, bar_index, lowerEndPrice, width=1, extend=extend, color=#0000ff)
+else
+    line.set_xy1(lower, bar_index - len + 1, lowerStartPrice)
+    line.set_xy2(lower, bar_index, lowerEndPrice)
+    na
+
+plot(startPrice, color=#aaaaaa00)
+plot(endPrice, color=#00aaaa00)
+atr_val = atr(500)
+slope_spread = endPrice - startPrice
+slope_spread_norm_pct = slope_spread * 100 / atr_val 
+plot(atr_val, color=color.blue)
+plot(slope_spread_norm_pct, color=#aaaa00FF)
+//background
+bgcolor = slope_spread_norm_pct > flat_market_threshold_val ? #006600FF : slope_spread_norm_pct < -flat_market_threshold_val ? #660000FF : #000066FF
+bgcolor(bgcolor, transp=70)
+
+// Pearson's R
+var label r = na
+transparent = color.new(color.white, 100)
+label.delete(r[1])
+if showPearson and not na(pearsonR)
+    r := label.new(bar_index - len + 1, lowerStartPrice, tostring(newR, "#.########"), color=transparent, textcolor=#0000ff, size=size.normal, style=label.style_labelup)

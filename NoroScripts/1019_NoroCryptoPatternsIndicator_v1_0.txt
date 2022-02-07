@@ -1,0 +1,46 @@
+//Noro
+//2019
+
+//@version=4
+study(title = "Noro's Crypto Patterns", shorttitle = "Patterns", overlay = true)
+
+//Settings
+nl = input(true, title = "Long")
+ns = input(true, title = "Short")
+np = input(true, title = "Pyramiding")
+showlabel = input(true, title = "Label")
+
+//Params
+body = abs(close - open)
+avgbody = sma(body, 100)
+bar = close > open ? +1 : close < open ? -1 : 0
+
+//Patterns
+p1 = false
+p2 = false
+p1 := nl and ((body[1] > avgbody and sma(bar, 2) == -1) or (np and p1[1] and close < close[1]))
+p2 := ns and ((body[1] > avgbody and sma(bar, 2) == +1) or (np and p2[1] and close > close[1]))
+
+//Arrows
+plotarrow(p1 ? 1 : na, colorup = color.black, colordown = color.black, transp = 0)
+plotarrow(p2 ? -1 : na, colorup = color.black, colordown = color.black, transp = 0)
+
+//Label
+if showlabel
+    s1 = p1 ? 1 : 0
+    s2 = p2 ? 1 : 0
+    psum = 0
+    psum := nz(psum[1], 0) + s1 + s2
+    r1 = p1[1] and bar == 1 ? 1 : 0
+    r2 = p2[1] and bar == -1 ? 1 : 0
+    rsum = 0
+    rsum := nz(rsum[1], 0) + r1 + r2
+    acc = rsum / psum * 100
+    lab = round(acc * 1000) / 1000
+    osx = timenow + round(change(time)*10)
+    osy = highest(100)
+    labeltext = "Signals: " + tostring(psum) + "\nAccuracy: " + tostring(lab) + "%"
+    var label la = na
+    label.delete(la)
+    tc = lab > 50 ? color.white : color.red
+    la := label.new(x = osx, y = osy, text = labeltext, xloc = xloc.bar_time, yloc = yloc.price, color = color.black, style = label.style_labelup, textcolor = tc)

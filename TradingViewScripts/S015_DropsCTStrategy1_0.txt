@@ -1,0 +1,98 @@
+//@version=4
+strategy("S015 Drops CT v1.0 Strategy", shorttitle = "S015 Drops CT v1.0 str", overlay=true, initial_capital=1500, default_qty_type=strategy.cash, default_qty_value=1470, commission_type=strategy.commission.percent, commission_value=0.04, pyramiding = 0) 
+  
+////////////////////////////////////////////////////////////////////////////
+// ****************** S015 Drops Strategy - v1.0 ************************ //
+////////////////////////////////////////////////////////////////////////////
+
+SL = 0.0 
+SL := nz(SL[1], 0.0)
+TP = 0.0 
+TP := nz(TP[1], 0.0)
+
+
+needlong = input(true, title = "Long")
+needshort = input(false, title = "Short")
+drops_period = input(5, minval = 2, maxval = 999, title = "Drops Period")
+drops_percent = input(5, title = "Drops Percent, %")
+tp_val_pct = input(0.4, type=input.float, title = "TP Value, %")
+sl_val_pct = input(0.4, type=input.float, title = "SL Value, %")
+fromyear = input(2022, minval = 1900, maxval = 2100, title = "From Year")
+toyear = input(2100, minval = 1900, maxval = 2100, title = "To Year")
+frommonth = input(1, minval = 01, maxval = 12, title = "From Month")
+tomonth = input(12, minval = 01, maxval = 12, title = "To Month")
+fromday = input(1, minval = 01, maxval = 31, title = "From day")
+today = input(31, minval = 01, maxval = 31, title = "To day")
+debugSignalLine = input(title="Debug Signal Line", type=input.float, defval=7000)
+
+src = hl2
+btc_series = security("BINANCE:BTCUSDT", "S", src)
+
+pct_val(v1, v2) =>
+    100 * (v2 - v1) / v1
+
+mb_ema(x_period, y_period) =>
+    pct_val(src[x_period - 1], src[y_period - 1])
+        
+mb_min(x_period, y_period) =>
+    ll = lowest(x_period - 1)
+    pct_val(ll, src[y_period - 1])
+
+mb_max(x_period, y_period) =>
+    hh = highest(x_period - 1)
+    pct_val(hh, src[y_period - 1])
+
+mb_btc(x_period, y_period) =>
+    pct_val(btc_series[x_period - 1], btc_series[y_period - 1])
+
+
+isPositionOpen() =>
+    strategy.position_size != 0
+
+isLongPositionOpen() =>
+    strategy.position_size > 0
+
+isShortPositionOpen() =>
+    strategy.position_size < 0
+
+if not isPositionOpen()
+    SL := na
+    TP := na
+
+// Calculate signal to determine whether eligible to open a new position
+// EXAMPLE from EMA chat: MIN(10m,1)>0.4 AND MIN(10m,300)>0.6 AND MIN(5m,1)>0.1 AND EMA(300,1)>0.4 AND EMA(10,1)<0.4 AND EMA(10,1)>0.1 AND MAX(15m,1)>-1 AND MIN(15m,1)<3.0 AND MAvg(10,1)>-0.09 AND BTC(10,1)>-0.09 AND MIN(5h,1)<6 AND EMA(5h,1)<6
+custom_ema_criteria() =>
+    mb_min(10*60,1)>0.4 and mb_min(10*60,300)>0.6 and mb_min(5*60,1)>0.1 and mb_ema(300,1)>0.4 and mb_ema(10,1)<0.4 and mb_ema(10,1)>0.1 and mb_max(15*60,1)>-1 and mb_min(15*60,1)<3.0 and mb_btc(10,1)>-0.09 and mb_min(5*60*60,1)<6 and mb_ema(5*60*60,1)<6
+
+//plot(src[14*60-1], color=color.teal)
+//plot(src, color=color.teal)
+//plot(ema_formula1, color=color.red)
+//plot(ema_formula2, color=color.green)
+//plot(ema_formula3, color=color.blue)
+
+openLongPositionCriteria = needlong == true and not isPositionOpen() and custom_ema_criteria()
+openShortPositionCriteria = needshort == true
+signalOpenPosition = iff(openLongPositionCriteria == true, 1, iff(openShortPositionCriteria == true, -1, na)) 
+
+//Signals 
+up = signalOpenPosition == 1
+dn = signalOpenPosition == -1
+
+//Trading
+if up
+    SL := close * (1 - sl_val_pct / 100)
+    TP := close * (1 + tp_val_pct / 100)
+    strategy.entry("Long", strategy.long, needlong == false ? 0 : na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+    strategy.exit("TP/SL", "Long", stop=SL, limit=TP)
+
+if dn
+    SL := close * (1 - sl_val_pct / 100)
+    TP := close * (1 + tp_val_pct / 100)
+    strategy.entry("Short", strategy.short, needshort == false ? 0 : na, when=(time > timestamp(fromyear, frommonth, fromday, 00, 00) and time < timestamp(toyear, tomonth, today, 23, 59)))
+    strategy.exit("TP/SL", "Short", stop=SL, limit=TP)
+
+//plot(SL, color=#FFFF00FF, style=plot.style_circles)
+//plot(TP, color=#0000FFFF, style=plot.style_circles)
+
+if time > timestamp(toyear, tomonth, today, 23, 59)
+    strategy.close_all()
